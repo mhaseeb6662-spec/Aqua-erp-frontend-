@@ -161,11 +161,17 @@ export default function App() {
         {/* 7. Student Portal */}
         <Route path="/student/dashboard" element={<ProtectedRoute portalType="student"><StudentDashboard /></ProtectedRoute>} />
         <Route path="/student/profile" element={<ProtectedRoute portalType="student"><StudentProfile /></ProtectedRoute>} />
+        <Route path="/student/programs" element={<ProtectedRoute permission="portal:programs:view"><ProgramCatalogue /></ProtectedRoute>} />
+        <Route path="/student/schedule" element={<ProtectedRoute permission="portal:schedule:view"><Schedule /></ProtectedRoute>} />
+        <Route path="/student/bookings" element={<ProtectedRoute permission="portal:bookings:view"><Bookings /></ProtectedRoute>} />
 
         {/* 8. Parent Portal */}
         <Route path="/parent/dashboard" element={<ProtectedRoute portalType="parent"><ParentDashboard /></ProtectedRoute>} />
         <Route path="/parent/children" element={<ProtectedRoute portalType="parent"><ParentChildren /></ProtectedRoute>} />
         <Route path="/parent/portal" element={<ProtectedRoute portalType="parent"><ParentPortal /></ProtectedRoute>} />
+        <Route path="/parent/programs" element={<ProtectedRoute permission="portal:programs:view"><ProgramCatalogue /></ProtectedRoute>} />
+        <Route path="/parent/schedule" element={<ProtectedRoute permission="portal:schedule:view"><Schedule /></ProtectedRoute>} />
+        <Route path="/parent/bookings" element={<ProtectedRoute permission="portal:bookings:view"><Bookings /></ProtectedRoute>} />
 
         {/* 9. Shared Portal Features */}
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />

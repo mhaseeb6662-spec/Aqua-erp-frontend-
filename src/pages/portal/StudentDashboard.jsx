@@ -58,7 +58,7 @@ export default function StudentDashboard() {
             </p>
           </div>
           <Link
-            to="/student/programs"
+            to="/programs"
             className="inline-flex items-center gap-2 rounded-xl bg-tide px-4 py-2.5 text-xs font-bold text-white hover:bg-tide-dark shadow-sm self-start sm:self-auto"
           >
             <BookOpen className="h-4 w-4" /> Browse Catalogue
@@ -116,7 +116,7 @@ export default function StudentDashboard() {
               <h3 className="font-display text-base font-bold text-marine flex items-center gap-2">
                 <CalendarDays className="h-5 w-5 text-tide" /> Upcoming Sessions &amp; Timetable
               </h3>
-              <Link to="/student/schedule" className="text-xs font-bold text-tide hover:underline flex items-center gap-1">
+              <Link to="/schedule" className="text-xs font-bold text-tide hover:underline flex items-center gap-1">
                 View All <ChevronRight className="h-3.5 w-3.5" />
               </Link>
             </div>
