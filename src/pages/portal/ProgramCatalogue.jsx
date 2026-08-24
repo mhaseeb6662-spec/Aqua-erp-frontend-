@@ -1,0 +1,809 @@
+import { useEffect, useState } from 'react';
+import DashboardLayout from '../../components/layout/DashboardLayout';
+import portalService from '../../services/portalService';
+import financeService from '../../services/financeService';
+import toast from 'react-hot-toast';
+import {
+  BookOpen, Search, Filter, Compass, Award, Users, DollarSign, Calendar, MapPin, CheckCircle2, Plus, X, ArrowRight, Star, CreditCard, FileText, CheckCircle, ShieldCheck, Download, Receipt
+} from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { Link } from 'react-router-dom';
+
+export default function ProgramCatalogue() {
+  const { user, hasPermission } = useAuth();
+  const [programs, setPrograms] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState('');
+  const [selectedBranch, setSelectedBranch] = useState('');
+
+  // Modals
+  const [selectedProgram, setSelectedProgram] = useState(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Booking Wizard Steps: 'form' -> 'invoice' -> 'confirmation'
+  const [bookingStep, setBookingStep] = useState('form');
+  const [createdBooking, setCreatedBooking] = useState(null);
+  const [generatedInvoice, setGeneratedInvoice] = useState(null);
+  const [completedTransaction, setCompletedTransaction] = useState(null);
+  const [completedReceipt, setCompletedReceipt] = useState(null);
+
+  // Payment details
+  const [paymentMethod, setPaymentMethod] = useState('Credit Card');
+  const [cardNumber, setCardNumber] = useState('4242 4242 4242 4242');
+  const [cardHolder, setCardHolder] = useState(user?.fullName || '');
+  const [cardExpiry, setCardExpiry] = useState('12/28');
+  const [cardCvv, setCardCvv] = useState('123');
+
+  // Booking Form State
+  const [bookingBranch, setBookingBranch] = useState('');
+  const [bookingDate, setBookingDate] = useState('');
+  const [bookingSlot, setBookingSlot] = useState('09:00 AM - 11:00 AM');
+  const [bookingType, setBookingType] = useState('Standard Class');
+  const [bookingNotes, setBookingNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Program Create Form
+  const [newProgram, setNewProgram] = useState({
+    title: '',
+    code: '',
+    category: 'Fishing Essentials',
+    description: '',
+    level: 'Beginner',
+    ageGroup: 'All Ages',
+    durationWeeks: 4,
+    price: 299,
+    branches: [],
+  });
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [progRes, branchRes] = await Promise.all([
+        portalService.getPrograms({
+          category: selectedCategory,
+          level: selectedLevel,
+          branch: selectedBranch,
+        }),
+        portalService.getBranches(),
+      ]);
+      setPrograms(progRes.data.data || []);
+      setBranches(branchRes.data.data || []);
+    } catch (err) {
+      toast.error('Failed to load program catalogue');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [selectedCategory, selectedLevel, selectedBranch]);
+
+  const handleOpenBooking = (program) => {
+    setSelectedProgram(program);
+    setBookingBranch(program.branches?.[0]?._id || branches[0]?._id || '');
+    setBookingDate(new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0]);
+    setBookingStep('form');
+    setCreatedBooking(null);
+    setGeneratedInvoice(null);
+    setCompletedTransaction(null);
+    setCompletedReceipt(null);
+    setShowBookingModal(true);
+  };
+
+  const handleBookingSubmit = async (e) => {
+    e.preventDefault();
+    if (!bookingDate || !bookingBranch) {
+      return toast.error('Please select a date and branch');
+    }
+    setIsSubmitting(true);
+    try {
+      const res = await portalService.createBooking({
+        programId: selectedProgram._id,
+        branchId: bookingBranch,
+        sessionDate: bookingDate,
+        slotTime: bookingSlot,
+        bookingType,
+        notes: bookingNotes,
+      });
+      const data = res.data.data;
+      const bObj = data?.booking || data;
+      const invObj = data?.invoice;
+
+      setCreatedBooking(bObj);
+      setGeneratedInvoice(invObj);
+
+      if (bookingType === 'Trial Session' || !invObj || invObj.totalAmount === 0) {
+        toast.success('Trial session reserved successfully! Check your schedule.');
+        setBookingStep('confirmation');
+      } else {
+        toast.success('Invoice generated! Please complete online payment.');
+        setBookingStep('invoice');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to complete booking');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePaymentSubmit = async (e) => {
+    e.preventDefault();
+    if (!generatedInvoice) return toast.error('Invoice missing');
+    setIsSubmitting(true);
+    try {
+      const res = await financeService.processCheckout({
+        invoiceId: generatedInvoice._id,
+        amount: generatedInvoice.totalAmount,
+        paymentMethod,
+        cardDetails: { cardNumber, cardHolder, cardExpiry, cardCvv },
+      });
+      const data = res.data.data;
+      setCompletedTransaction(data.transaction);
+      setCompletedReceipt(data.receipt);
+      toast.success('Payment successful! Booking confirmed & synchronized with Finance & Operations.');
+      setBookingStep('confirmation');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Payment processing failed. Please check card details.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCreateProgramSubmit = async (e) => {
+    e.preventDefault();
+    if (!newProgram.title || !newProgram.code || !newProgram.price) {
+      return toast.error('Please fill required fields');
+    }
+    setIsSubmitting(true);
+    try {
+      await portalService.createProgram({
+        ...newProgram,
+        code: newProgram.code.toUpperCase(),
+        branches: newProgram.branches.length ? newProgram.branches : branches.map((b) => b._id),
+      });
+      toast.success('New program added to catalogue!');
+      setShowCreateModal(false);
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to create program');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const filteredPrograms = programs.filter(
+    (p) =>
+      p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-marine">Academy Program Catalogue</h1>
+            <p className="text-sm text-slate-500">
+              Explore fishing courses, specialized workshops, and certified angling programs across academy branches.
+            </p>
+          </div>
+          {hasPermission('portal:programs:manage') && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-tide px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-tide-dark"
+            >
+              <Plus className="h-4 w-4" /> Add New Program
+            </button>
+          )}
+        </div>
+
+        {/* Search & Filter Bar */}
+        <div className="grid gap-4 rounded-2xl bg-white p-4 shadow-sm border border-slate-100 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search programs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 py-2 pl-10 pr-4 text-sm focus:border-tide focus:outline-none focus:ring-1 focus:ring-tide"
+            />
+          </div>
+
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="rounded-xl border border-slate-200 py-2 px-3 text-sm focus:border-tide focus:outline-none focus:ring-1 focus:ring-tide"
+          >
+            <option value="">All Categories</option>
+            <option value="Fishing Essentials">Fishing Essentials</option>
+            <option value="Offshore & Deep Sea">Offshore & Deep Sea</option>
+            <option value="Kayak & Boating">Kayak & Boating</option>
+            <option value="Junior Angler">Junior Angler</option>
+            <option value="Spearfishing & Diving">Spearfishing & Diving</option>
+          </select>
+
+          <select
+            value={selectedLevel}
+            onChange={(e) => setSelectedLevel(e.target.value)}
+            className="rounded-xl border border-slate-200 py-2 px-3 text-sm focus:border-tide focus:outline-none focus:ring-1 focus:ring-tide"
+          >
+            <option value="">All Skill Levels</option>
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+            <option value="Master">Master</option>
+          </select>
+
+          <select
+            value={selectedBranch}
+            onChange={(e) => setSelectedBranch(e.target.value)}
+            className="rounded-xl border border-slate-200 py-2 px-3 text-sm focus:border-tide focus:outline-none focus:ring-1 focus:ring-tide"
+          >
+            <option value="">All Branches</option>
+            {branches.map((b) => (
+              <option key={b._id} value={b._id}>
+                {b.name} ({b.city})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Programs Grid */}
+        {isLoading ? (
+          <div className="flex h-64 items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-tide border-t-transparent"></div>
+          </div>
+        ) : filteredPrograms.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center">
+            <BookOpen className="mx-auto h-12 w-12 text-slate-300" />
+            <h3 className="mt-3 text-lg font-semibold text-slate-700">No Programs Found</h3>
+            <p className="mt-1 text-sm text-slate-500">Try clearing filters or search query to find active academy courses.</p>
+          </div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredPrograms.map((prog) => (
+              <div
+                key={prog._id}
+                className="group flex flex-col justify-between rounded-2xl bg-white p-6 shadow-sm border border-slate-100 transition duration-200 hover:-translate-y-1 hover:shadow-md"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-tide/10 px-2.5 py-1 text-xs font-semibold text-tide">
+                      {prog.category}
+                    </span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{prog.code}</span>
+                  </div>
+
+                  <h3 className="mt-3 font-display text-lg font-bold text-marine group-hover:text-tide transition">
+                    {prog.title}
+                  </h3>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-500 line-clamp-3">{prog.description}</p>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-slate-50 p-3 text-xs">
+                    <div className="flex items-center gap-1.5 text-slate-600">
+                      <Award className="h-4 w-4 text-tide" />
+                      <span>{prog.level}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-600">
+                      <Users className="h-4 w-4 text-tide" />
+                      <span>{prog.ageGroup}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-600">
+                      <Calendar className="h-4 w-4 text-tide" />
+                      <span>{prog.durationWeeks} Weeks ({prog.sessionsCount || 8} sessions)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 font-semibold text-marine">
+                      <DollarSign className="h-4 w-4 text-tide" />
+                      <span>${prog.price} USD</span>
+                    </div>
+                  </div>
+
+                  {prog.branches && prog.branches.length > 0 && (
+                    <div className="mt-3 flex items-center gap-1 text-[11px] text-slate-400">
+                      <MapPin className="h-3.5 w-3.5 text-tide" />
+                      <span>Available at: {prog.branches.map((b) => b.name).join(', ')}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-500">
+                    {prog.status === 'active' ? (
+                      <span className="inline-flex items-center gap-1 text-emerald-600">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Enrolling Open
+                      </span>
+                    ) : (
+                      <span className="text-amber-600">Upcoming</span>
+                    )}
+                  </span>
+                  <button
+                    onClick={() => handleOpenBooking(prog)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-marine px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-marine-dark"
+                  >
+                    Book Session <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Booking Modal */}
+        {showBookingModal && selectedProgram && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-marine-dark/40 backdrop-blur-sm p-4">
+            <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-tide">Blueprint 7-Step Journey</span>
+                  <h2 className="font-display text-lg font-bold text-marine">Book {selectedProgram.title}</h2>
+                  <p className="text-xs text-slate-500">${selectedProgram.price} USD | {selectedProgram.category}</p>
+                </div>
+                <button onClick={() => setShowBookingModal(false)} className="text-slate-400 hover:text-slate-600">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* 7-Step Progress Flow Indicator */}
+              <div className="mt-3 rounded-xl bg-slate-50 p-2 border border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-500 overflow-x-auto">
+                <span className={bookingStep === 'form' || bookingStep === 'invoice' || bookingStep === 'confirmation' ? 'text-tide font-extrabold' : ''}>1. Program ✓</span>
+                <span>→</span>
+                <span className={bookingStep === 'form' || bookingStep === 'invoice' || bookingStep === 'confirmation' ? 'text-tide font-extrabold' : ''}>2. Branch</span>
+                <span>→</span>
+                <span className={bookingStep === 'form' || bookingStep === 'invoice' || bookingStep === 'confirmation' ? 'text-tide font-extrabold' : ''}>3. Slot</span>
+                <span>→</span>
+                <span className={bookingStep === 'form' || bookingStep === 'invoice' || bookingStep === 'confirmation' ? 'text-tide font-extrabold' : ''}>4. Info</span>
+                <span>→</span>
+                <span className={bookingStep === 'invoice' || bookingStep === 'confirmation' ? 'text-tide font-extrabold' : ''}>5. Invoice</span>
+                <span>→</span>
+                <span className={bookingStep === 'invoice' || bookingStep === 'confirmation' ? 'text-tide font-extrabold' : ''}>6. Pay</span>
+                <span>→</span>
+                <span className={bookingStep === 'confirmation' ? 'text-emerald-600 font-extrabold' : ''}>7. Confirm</span>
+              </div>
+
+              {/* STEP 1-4: BOOKING FORM */}
+              {bookingStep === 'form' && (
+                <form onSubmit={handleBookingSubmit} className="mt-4 space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700">Select Academy Branch *</label>
+                    <select
+                      value={bookingBranch}
+                      onChange={(e) => setBookingBranch(e.target.value)}
+                      required
+                      className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
+                    >
+                      {branches.map((b) => (
+                        <option key={b._id} value={b._id}>
+                          {b.name} - {b.city} ({b.address})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700">Preferred Date *</label>
+                      <input
+                        type="date"
+                        value={bookingDate}
+                        onChange={(e) => setBookingDate(e.target.value)}
+                        required
+                        className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700">Slot Time *</label>
+                      <select
+                        value={bookingSlot}
+                        onChange={(e) => setBookingSlot(e.target.value)}
+                        className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
+                      >
+                        <option value="07:00 AM - 09:00 AM">07:00 AM - 09:00 AM (Early Bird)</option>
+                        <option value="09:00 AM - 11:00 AM">09:00 AM - 11:00 AM (Morning)</option>
+                        <option value="01:00 PM - 03:00 PM">01:00 PM - 03:00 PM (Afternoon)</option>
+                        <option value="04:00 PM - 06:00 PM">04:00 PM - 06:00 PM (Evening)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700">Booking Type</label>
+                      <select
+                        value={bookingType}
+                        onChange={(e) => setBookingType(e.target.value)}
+                        className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
+                      >
+                        <option value="Standard Class">Standard Class (${selectedProgram.price})</option>
+                        <option value="Trial Session">Trial Session (FREE)</option>
+                        <option value="Workshop">Workshop</option>
+                        <option value="Private Coaching">Private Coaching</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700">Total Price</label>
+                      <div className="mt-1 rounded-xl bg-slate-100 p-2.5 text-sm font-bold text-marine">
+                        {bookingType === 'Trial Session' ? 'FREE (Trial)' : `$${selectedProgram.price} USD`}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700">Special Notes / Student Requests</label>
+                    <textarea
+                      rows={2}
+                      placeholder="E.g., Left-handed reel required, allergy notice..."
+                      value={bookingNotes}
+                      onChange={(e) => setBookingNotes(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
+                    ></textarea>
+                  </div>
+
+                  <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowBookingModal(false)}
+                      className="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="rounded-xl bg-tide px-5 py-2 text-sm font-bold text-white hover:bg-tide-dark disabled:opacity-50"
+                    >
+                      {isSubmitting ? 'Generating Invoice...' : 'Generate Invoice & Pay →'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* STEP 5 & 6: INVOICE GENERATED & PAY ONLINE */}
+              {bookingStep === 'invoice' && generatedInvoice && (
+                <div className="mt-4 space-y-5">
+                  {/* Generated Invoice Card */}
+                  <div className="rounded-2xl bg-slate-50 p-5 border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Official Invoice</p>
+                        <p className="font-mono text-sm font-bold text-marine">{generatedInvoice.invoiceNumber}</p>
+                      </div>
+                      <span className="rounded-lg bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 border border-amber-200">
+                        {generatedInvoice.status || 'Pending Payment'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-slate-400">Program:</span>
+                        <p className="font-semibold text-marine">{selectedProgram.title}</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Session Date:</span>
+                        <p className="font-semibold text-marine">{bookingDate}</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Time Slot:</span>
+                        <p className="font-semibold text-marine">{bookingSlot}</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Customer:</span>
+                        <p className="font-semibold text-marine">{user?.fullName}</p>
+                      </div>
+                    </div>
+
+                    {/* Breakdown */}
+                    <div className="rounded-xl bg-white p-3 border border-slate-100 text-xs space-y-1.5">
+                      <div className="flex justify-between text-slate-600">
+                        <span>Course Fee:</span>
+                        <span>${generatedInvoice.subtotal} USD</span>
+                      </div>
+                      <div className="flex justify-between text-slate-600">
+                        <span>Academy Tax (5%):</span>
+                        <span>${generatedInvoice.taxAmount} USD</span>
+                      </div>
+                      <div className="flex justify-between font-bold text-marine text-sm pt-1 border-t border-slate-100">
+                        <span>Total Due:</span>
+                        <span className="text-tide">${generatedInvoice.totalAmount} USD</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Online Payment Form */}
+                  <form onSubmit={handlePaymentSubmit} className="space-y-4 rounded-2xl bg-white p-4 border border-tide/20 shadow-xs">
+                    <div className="flex items-center gap-2 text-marine font-bold text-sm">
+                      <CreditCard className="h-4 w-4 text-tide" />
+                      <span>Online Payment Gateway (Step 6)</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600">Payment Method</label>
+                      <div className="mt-1 grid grid-cols-3 gap-2">
+                        {['Credit Card', 'PayPal', 'Stripe'].map((method) => (
+                          <button
+                            key={method}
+                            type="button"
+                            onClick={() => setPaymentMethod(method)}
+                            className={`rounded-xl py-2 text-xs font-bold border transition ${
+                              paymentMethod === method
+                                ? 'border-tide bg-tide/10 text-tide'
+                                : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                            }`}
+                          >
+                            {method}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600">Cardholder Name</label>
+                      <input
+                        type="text"
+                        required
+                        value={cardHolder}
+                        onChange={(e) => setCardHolder(e.target.value)}
+                        className="mt-1 w-full rounded-xl border border-slate-200 p-2 text-xs focus:border-tide focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="col-span-2">
+                        <label className="block text-[11px] font-semibold text-slate-600">Card Number</label>
+                        <input
+                          type="text"
+                          required
+                          value={cardNumber}
+                          onChange={(e) => setCardNumber(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-200 p-2 text-xs font-mono focus:border-tide focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600">CVV</label>
+                        <input
+                          type="text"
+                          required
+                          value={cardCvv}
+                          onChange={(e) => setCardCvv(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-200 p-2 text-xs font-mono focus:border-tide focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex justify-end gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setBookingStep('form')}
+                        className="rounded-xl px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-1.5"
+                      >
+                        <ShieldCheck className="h-4 w-4" />
+                        {isSubmitting ? 'Processing Payment...' : `Pay Now ($${generatedInvoice.totalAmount} USD)`}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* STEP 7: CONFIRMATION & RECEIPT */}
+              {bookingStep === 'confirmation' && (
+                <div className="mt-4 text-center space-y-4">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 no-print">
+                    <CheckCircle className="h-10 w-10" />
+                  </div>
+
+                  <div className="no-print">
+                    <h3 className="font-display text-xl font-bold text-marine">Booking Confirmed!</h3>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Your session for <span className="font-semibold text-marine">{selectedProgram?.title}</span> has been confirmed and synchronized with Finance and Operations.
+                    </p>
+                  </div>
+
+                  {generatedInvoice && (
+                    <div className="printable-document rounded-2xl bg-white p-6 border border-slate-200 text-xs space-y-3 text-left">
+                      <div className="text-center border-b border-slate-100 pb-3">
+                        <h1 className="font-display text-lg font-bold text-marine">AQUA FISHING ACADEMY</h1>
+                        <p className="text-[11px] text-slate-500">Official Payment Receipt &amp; Booking Confirmation</p>
+                        {completedReceipt && (
+                          <p className="font-mono text-xs font-bold text-tide mt-1">{completedReceipt.receiptNumber}</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2 text-xs">
+                        <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                          <span className="text-slate-500">Invoice Number:</span>
+                          <span className="font-mono font-bold text-marine">{generatedInvoice.invoiceNumber}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                          <span className="text-slate-500">Customer Name:</span>
+                          <span className="font-semibold text-marine">{user?.fullName}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                          <span className="text-slate-500">Program:</span>
+                          <span className="font-semibold text-marine">{selectedProgram?.title}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                          <span className="text-slate-500">Session Date &amp; Slot:</span>
+                          <span className="font-semibold text-marine">{bookingDate} ({bookingSlot})</span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                          <span className="text-slate-500">Payment Status:</span>
+                          <span className="font-bold text-emerald-600">PAID</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-emerald-50 p-2.5 rounded-xl border border-emerald-100 mt-2">
+                          <span className="text-emerald-800 font-bold">Total Paid:</span>
+                          <span className="font-display text-base font-bold text-emerald-700">${generatedInvoice.totalAmount} USD</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4 border-t border-slate-100 no-print">
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-tide px-4 py-2.5 text-xs font-bold text-white hover:bg-tide-dark no-print"
+                    >
+                      <Printer className="h-4 w-4" /> Print Official Receipt / Invoice
+                    </button>
+                    <Link
+                      to={user?.role?.slug === 'parent' ? '/parent/schedule' : '/student/schedule'}
+                      onClick={() => setShowBookingModal(false)}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-marine px-4 py-2.5 text-xs font-bold text-white hover:bg-marine-dark no-print"
+                    >
+                      <Calendar className="h-4 w-4" /> View My Timetable
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setShowBookingModal(false)}
+                      className="w-full sm:w-auto rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 no-print"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Create Program Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-marine-dark/40 backdrop-blur-sm p-4">
+            <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <h2 className="font-display text-lg font-bold text-marine">Create New Program</h2>
+                <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateProgramSubmit} className="mt-4 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700">Program Title *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newProgram.title}
+                      onChange={(e) => setNewProgram({ ...newProgram, title: e.target.value })}
+                      placeholder="E.g., Spearfishing Safety 101"
+                      className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700">Program Code *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newProgram.code}
+                      onChange={(e) => setNewProgram({ ...newProgram, code: e.target.value })}
+                      placeholder="PROG-SPEAR"
+                      className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none uppercase"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700">Category</label>
+                    <select
+                      value={newProgram.category}
+                      onChange={(e) => setNewProgram({ ...newProgram, category: e.target.value })}
+                      className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
+                    >
+                      <option value="Fishing Essentials">Fishing Essentials</option>
+                      <option value="Offshore & Deep Sea">Offshore & Deep Sea</option>
+                      <option value="Kayak & Boating">Kayak & Boating</option>
+                      <option value="Junior Angler">Junior Angler</option>
+                      <option value="Spearfishing & Diving">Spearfishing & Diving</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700">Skill Level</label>
+                    <select
+                      value={newProgram.level}
+                      onChange={(e) => setNewProgram({ ...newProgram, level: e.target.value })}
+                      className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
+                    >
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                      <option value="Master">Master</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700">Price (USD) *</label>
+                    <input
+                      type="number"
+                      required
+                      value={newProgram.price}
+                      onChange={(e) => setNewProgram({ ...newProgram, price: Number(e.target.value) })}
+                      className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700">Duration (Weeks)</label>
+                    <input
+                      type="number"
+                      value={newProgram.durationWeeks}
+                      onChange={(e) => setNewProgram({ ...newProgram, durationWeeks: Number(e.target.value) })}
+                      className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700">Description</label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={newProgram.description}
+                    onChange={(e) => setNewProgram({ ...newProgram, description: e.target.value })}
+                    placeholder="Provide course overview and highlights..."
+                    className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
+                  ></textarea>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="rounded-xl bg-tide px-5 py-2 text-sm font-semibold text-white hover:bg-tide-dark disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Saving...' : 'Save Program'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+}
