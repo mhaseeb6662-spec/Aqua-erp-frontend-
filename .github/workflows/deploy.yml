@@ -1,0 +1,36 @@
+name: Deploy Frontend to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 187.127.219.118
+          username: root
+          password: ${{ secrets.VPS_PASSWORD || 'Acadmy@12345' }}
+          script: |
+            echo "Deploying latest Frontend..."
+            if [ -d "/var/www/aqua-erp/frontend-repo/.git" ]; then
+                cd /var/www/aqua-erp/frontend-repo
+                git pull origin main
+            else
+                rm -rf /var/www/aqua-erp/frontend-repo
+                git clone https://github.com/mhaseeb6662-spec/Aqua-erp-frontend-.git /var/www/aqua-erp/frontend-repo
+            fi
+            cd /var/www/aqua-erp/frontend-repo
+            npm install --no-audit
+            npm run build
+            rm -rf /var/www/aqua-erp/frontend/dist/*
+            cp -r dist/* /var/www/aqua-erp/frontend/dist/
+            systemctl reload nginx
+            echo "Frontend Deployment Complete!"
