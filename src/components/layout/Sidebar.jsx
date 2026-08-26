@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import {
   LayoutDashboard, Users, ShieldCheck, Waves, X, Anchor,
   Contact2, KanbanSquare, UserSquare2, Users2, BarChart3, Zap, CalendarDays,
@@ -6,6 +6,7 @@ import {
   TrendingUp, Activity, Award, Building, Layers, Bell, UserCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import AcademyLogo from '../common/AcademyLogo';
 
 // 1. STUDENT PORTAL NAVIGATION
 const STUDENT_SECTIONS = [
@@ -163,25 +164,19 @@ export default function Sidebar({ open, onClose }) {
       >
         <div className="flex h-full flex-col">
           {/* Brand */}
-          <div className="flex items-center justify-between px-6 py-6">
-            <div className="flex items-center gap-2.5">
-              <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-tide">
-                <Anchor className="h-5 w-5 text-white" strokeWidth={2.25} />
-              </span>
-              <div className="leading-tight">
-                <p className="font-display text-[15px] font-bold tracking-tight text-white">Aqua Fishing</p>
-                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-tide-light">Academy ERP</p>
-              </div>
-            </div>
-            <button className="text-white/80 hover:text-white lg:hidden" onClick={onClose}>
+          <div className="flex items-center justify-between px-4 py-5 border-b border-white/10">
+            <Link to="/dashboard" className="flex-1 pr-2">
+              <AcademyLogo variant="sidebar" />
+            </Link>
+            <button className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 lg:hidden transition" onClick={onClose}>
               <X className="h-5 w-5" />
             </button>
           </div>
 
           {/* Role / Portal Context Badge */}
-          <div className="mx-4 mb-3 px-3 py-1.5 rounded-lg bg-white/10 border border-white/15 flex items-center justify-between">
+          <div className="mx-4 mt-3 mb-3 px-3 py-1.5 rounded-lg bg-white/10 border border-white/15 flex items-center justify-between shadow-2xs">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-tide-light">{portalBadge}</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
           </div>
 
           {/* Nav */}

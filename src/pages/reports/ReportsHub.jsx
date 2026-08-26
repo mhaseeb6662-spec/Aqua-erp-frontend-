@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import ManagementFilterBar from '../../components/management/ManagementFilterBar';
 import reportService from '../../services/reportService';
+import AcademyLogo from '../../components/common/AcademyLogo';
 
 export default function ReportsHub() {
   const [reportType, setReportType] = useState('daily'); // 'daily' | 'weekly' | 'monthly'
@@ -129,12 +130,10 @@ export default function ReportsHub() {
           {/* Document Letterhead */}
           <div className="flex items-start justify-between border-b-2 border-marine pb-6">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="h-8 w-8 rounded-xl bg-marine text-white flex items-center justify-center font-bold font-display text-sm">
-                  AFA
-                </span>
-                <div>
-                  <h2 className="font-display text-xl font-black text-marine">Aqua Fishing Academy</h2>
+              <div className="flex items-center gap-3">
+                <AcademyLogo variant="report" />
+                <div className="border-l border-slate-200 pl-3">
+                  <h2 className="font-display text-lg font-black text-marine">Executive Management Report</h2>
                   <p className="text-[10px] uppercase font-bold tracking-widest text-slate-600">
                     Official Executive Report • Confidential
                   </p>

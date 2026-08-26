@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import portalService from '../../services/portalService';
 import toast from 'react-hot-toast';
+import AcademyLogo from '../common/AcademyLogo';
 
 export default function Navbar({ onMenuClick, title }) {
   const { user, logout } = useAuth();
@@ -41,12 +42,15 @@ export default function Navbar({ onMenuClick, title }) {
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between border-b border-marine/[0.06] bg-white/80 px-4 py-4 backdrop-blur-md sm:px-8 no-print">
+    <header className="sticky top-0 z-20 flex items-center justify-between border-b border-marine/[0.06] bg-white/80 px-4 py-3.5 backdrop-blur-md sm:px-8 no-print">
       <div className="flex items-center gap-3">
-        <button className="text-slate-700 hover:text-tide lg:hidden" onClick={onMenuClick}>
+        <button className="text-slate-700 hover:text-tide lg:hidden p-1 rounded-lg hover:bg-slate-100 transition" onClick={onMenuClick}>
           <Menu className="h-5.5 w-5.5" />
         </button>
-        <h1 className="font-display text-lg font-bold text-marine sm:text-xl">{title}</h1>
+        <div className="lg:hidden flex items-center">
+          <AcademyLogo variant="navbar" className="h-7 w-auto" />
+        </div>
+        <h1 className="font-display text-base sm:text-xl font-bold text-marine hidden sm:block">{title}</h1>
       </div>
 
       <div className="flex items-center gap-3">

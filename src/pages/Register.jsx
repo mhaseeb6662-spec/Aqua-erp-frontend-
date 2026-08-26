@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Anchor } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import AcademyLogo from '../components/common/AcademyLogo';
 
 export default function Register() {
   const { register } = useAuth();
@@ -31,17 +31,16 @@ export default function Register() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-mist px-6 py-12">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-tide">
-            <Anchor className="h-5 w-5 text-white" />
-          </span>
-          <p className="font-display text-base font-bold text-marine">Aqua Fishing Academy</p>
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12">
+      <div className="w-full max-w-md">
+        <div className="mb-6 flex justify-center">
+          <Link to="/login">
+            <AcademyLogo variant="login" />
+          </Link>
         </div>
 
-        <h1 className="text-2xl font-bold text-marine">Create your account</h1>
-        <p className="mt-1.5 text-sm text-ink/60">Student &amp; parent self-registration.</p>
+        <h1 className="text-2xl font-extrabold text-marine text-center">Create your account</h1>
+        <p className="mt-1 text-sm text-slate-600 font-medium text-center">Student &amp; parent self-registration.</p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           {error && (

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
+import AcademyLogo from '../../components/common/AcademyLogo';
 
 export default function ProgramCatalogue() {
   const { user, hasPermission } = useAuth();
@@ -617,9 +618,9 @@ export default function ProgramCatalogue() {
 
                   {generatedInvoice && (
                     <div className="printable-document rounded-2xl bg-white p-6 border border-slate-200 text-xs space-y-3 text-left">
-                      <div className="text-center border-b border-slate-100 pb-3">
-                        <h1 className="font-display text-lg font-bold text-marine">AQUA FISHING ACADEMY</h1>
-                        <p className="text-[11px] text-slate-500">Official Payment Receipt &amp; Booking Confirmation</p>
+                      <div className="text-center border-b border-slate-100 pb-3 flex flex-col items-center">
+                        <AcademyLogo variant="receipt" className="mb-2" />
+                        <p className="text-[11px] text-slate-500 font-medium">Official Payment Receipt &amp; Booking Confirmation</p>
                         {completedReceipt && (
                           <p className="font-mono text-xs font-bold text-tide mt-1">{completedReceipt.receiptNumber}</p>
                         )}

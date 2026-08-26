@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Anchor, MailCheck } from 'lucide-react';
+import { MailCheck } from 'lucide-react';
 import authService from '../services/authService';
+import AcademyLogo from '../components/common/AcademyLogo';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -20,13 +21,12 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-mist px-6 py-12">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-tide">
-            <Anchor className="h-5 w-5 text-white" />
-          </span>
-          <p className="font-display text-base font-bold text-marine">Aqua Fishing Academy</p>
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12">
+      <div className="w-full max-w-md">
+        <div className="mb-6 flex justify-center">
+          <Link to="/login">
+            <AcademyLogo variant="login" />
+          </Link>
         </div>
 
         {sent ? (

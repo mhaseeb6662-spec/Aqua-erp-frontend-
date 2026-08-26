@@ -4,6 +4,7 @@ import financeService from '../../services/financeService';
 import toast from 'react-hot-toast';
 import { FileCheck, Printer, Search, Download, CheckCircle2, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import AcademyLogo from '../../components/common/AcademyLogo';
 
 export default function ReceiptsManagement() {
   const { user } = useAuth();
@@ -121,9 +122,9 @@ export default function ReceiptsManagement() {
 
               {/* Printable Receipt Card */}
               <div className="printable-document mt-6 space-y-6 text-slate-700 bg-white p-6">
-                <div className="text-center border-b border-slate-100 pb-4">
-                  <h1 className="font-display text-xl font-bold text-marine">AQUA FISHING ACADEMY</h1>
-                  <p className="text-xs text-slate-500">Official Payment Receipt</p>
+                <div className="text-center border-b border-slate-100 pb-4 flex flex-col items-center">
+                  <AcademyLogo variant="receipt" className="mb-2" />
+                  <p className="text-xs text-slate-500 font-medium">Official Payment Receipt</p>
                   <p className="font-mono text-sm font-bold text-tide mt-1">{selectedReceipt.receiptNumber}</p>
                 </div>
 

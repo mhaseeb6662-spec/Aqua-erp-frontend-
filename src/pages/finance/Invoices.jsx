@@ -9,6 +9,7 @@ import {
   FileText, Plus, Search, Filter, Printer, Send, CreditCard, DollarSign, CheckCircle2, AlertCircle, Clock, X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import AcademyLogo from '../../components/common/AcademyLogo';
 
 export default function Invoices() {
   const { user, hasPermission } = useAuth();
@@ -330,15 +331,7 @@ export default function Invoices() {
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900">Tax Invoice</h1>
                   </div>
                   <div className="flex items-center gap-2 text-right">
-                    <div className="flex flex-col items-end">
-                      <div className="flex items-center gap-1.5">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500 text-white font-bold text-xs">
-                          ⚓
-                        </span>
-                        <span className="font-display text-lg font-bold text-sky-600 tracking-tight">AquaFishing</span>
-                      </div>
-                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-amber-500 -mt-1">ACADEMY</span>
-                    </div>
+                    <AcademyLogo variant="invoice" />
                   </div>
                 </div>
 
