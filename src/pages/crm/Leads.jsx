@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, UserCheck, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, UserCheck, ChevronLeft, ChevronRight, Sparkles, ArrowUpDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Loader from '../../components/common/Loader';
@@ -23,6 +23,7 @@ export default function Leads() {
   const [search, setSearch] = useState('');
   const [source, setSource] = useState('');
   const [stage, setStage] = useState('');
+  const [dateSort, setDateSort] = useState('newest'); // 'newest' | 'oldest' | 'recent_update' | 'least_recent_update'
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState({ totalPages: 1, total: 0 });
 
@@ -35,7 +36,28 @@ export default function Leads() {
   const loadLeads = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await leadService.getLeads({ search, source, stage, page, limit: 10 });
+      let sortBy = 'createdAt';
+      let sortOrder = 'desc';
+      if (dateSort === 'oldest') {
+        sortBy = 'createdAt';
+        sortOrder = 'asc';
+      } else if (dateSort === 'recent_update') {
+        sortBy = 'updatedAt';
+        sortOrder = 'desc';
+      } else if (dateSort === 'least_recent_update') {
+        sortBy = 'updatedAt';
+        sortOrder = 'asc';
+      }
+
+      const { data } = await leadService.getLeads({
+        search,
+        source,
+        stage,
+        sortBy,
+        sortOrder,
+        page,
+        limit: 10,
+      });
       setLeads(data.data);
       setMeta(data.meta);
     } catch (err) {
@@ -43,7 +65,7 @@ export default function Leads() {
     } finally {
       setLoading(false);
     }
-  }, [search, source, stage, page]);
+  }, [search, source, stage, dateSort, page]);
 
   const loadSalesTeam = useCallback(async () => {
     if (!hasPermission('crm:leads:assign') && !hasPermission('crm:sales-team:view')) {
@@ -74,7 +96,7 @@ export default function Leads() {
   return (
     <DashboardLayout title="Leads">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <div className="flex flex-1 flex-wrap gap-3">
+        <div className="flex flex-1 flex-wrap items-center gap-3">
           <div className="relative w-full max-w-xs">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/30" />
             <input
@@ -92,6 +114,25 @@ export default function Leads() {
             <option value="">All stages</option>
             {PIPELINE_STAGES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
+
+          {/* Sort by Date Control */}
+          <div className="flex items-center gap-1.5 bg-white border border-marine/[0.12] rounded-xl px-3 py-2 text-xs font-medium text-slate-700 shadow-2xs hover:border-tide transition-colors">
+            <ArrowUpDown className="h-4 w-4 text-tide shrink-0" />
+            <select
+              className="bg-transparent border-0 outline-none text-xs font-bold text-slate-800 cursor-pointer pr-1"
+              value={dateSort}
+              onChange={(e) => {
+                setDateSort(e.target.value);
+                setPage(1);
+              }}
+              title="Sort by Date"
+            >
+              <option value="newest">Sort: Newest First</option>
+              <option value="oldest">Sort: Oldest First</option>
+              <option value="recent_update">Sort: Recently Updated</option>
+              <option value="least_recent_update">Sort: Least Recently Updated</option>
+            </select>
+          </div>
         </div>
 
         {hasPermission('crm:leads:create') && (
@@ -115,6 +156,7 @@ export default function Leads() {
                   <th className="px-6 py-3.5">Lead</th>
                   <th className="px-6 py-3.5">Source</th>
                   <th className="px-6 py-3.5">Stage</th>
+                  <th className="px-6 py-3.5">Date Added</th>
                   <th className="px-6 py-3.5">Assigned to</th>
                   <th className="px-6 py-3.5 text-right">Actions</th>
                 </tr>
@@ -128,6 +170,14 @@ export default function Leads() {
                     </td>
                     <td className="px-6 py-3.5"><SourceBadge source={l.source} /></td>
                     <td className="px-6 py-3.5"><StageBadge stage={l.stage} /></td>
+                    <td className="px-6 py-3.5 text-xs text-slate-600">
+                      <span className="font-semibold text-slate-800 block">
+                        {l.createdAt ? new Date(l.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        {l.createdAt ? new Date(l.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : ''}
+                      </span>
+                    </td>
                     <td className="px-6 py-3.5 text-ink/70">{l.assignedTo?.fullName || '—'}</td>
                     <td className="px-6 py-3.5">
                       <div className="flex justify-end gap-1.5">
