@@ -4,10 +4,13 @@ import financeService from '../../services/financeService';
 import userService from '../../services/userService';
 import portalService from '../../services/portalService';
 import OnlineCheckoutModal from './OnlineCheckoutModal';
+import RecordPaymentModal from './RecordPaymentModal';
+import StatusOverrideModal from './StatusOverrideModal';
+import PaymentEvidenceModal from './PaymentEvidenceModal';
 import toast from 'react-hot-toast';
 import { formatAED } from '../../utils/currency';
 import {
-  FileText, Plus, Search, Filter, Printer, Send, CreditCard, DollarSign, CheckCircle2, AlertCircle, Clock, X
+  FileText, Plus, Search, Filter, Printer, Send, CreditCard, DollarSign, CheckCircle2, AlertCircle, Clock, X, ShieldAlert, Image
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import AcademyLogo from '../../components/common/AcademyLogo';
@@ -24,6 +27,12 @@ export default function Invoices() {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
+  const [recordPaymentInvoice, setRecordPaymentInvoice] = useState(null);
+  const [showStatusOverrideModal, setShowStatusOverrideModal] = useState(false);
+  const [statusOverrideInvoice, setStatusOverrideInvoice] = useState(null);
+  const [showEvidenceModal, setShowEvidenceModal] = useState(false);
+  const [selectedEvidencePayment, setSelectedEvidencePayment] = useState(null);
 
   // Users & Programs list for invoice creation
   const [customers, setCustomers] = useState([]);
@@ -263,14 +272,14 @@ export default function Invoices() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => {
                               setSelectedInvoice(inv);
                               setShowDetailModal(true);
                             }}
                             className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"
-                            title="View Invoice"
+                            title="View Tax Invoice"
                           >
                             <FileText className="h-4 w-4" />
                           </button>
@@ -278,10 +287,22 @@ export default function Invoices() {
                           {inv.balanceDue > 0 && (
                             <>
                               <button
-                                onClick={() => handlePayOnline(inv)}
-                                className="inline-flex items-center gap-1 rounded-lg bg-tide px-3 py-1.5 text-xs font-bold text-white hover:bg-tide-dark shadow-xs"
+                                onClick={() => {
+                                  setRecordPaymentInvoice(inv);
+                                  setShowRecordPaymentModal(true);
+                                }}
+                                className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-xs"
+                                title="Record POS / Card / Cash Payment"
                               >
-                                <CreditCard className="h-3.5 w-3.5" /> Pay Online
+                                <CreditCard className="h-3.5 w-3.5" /> Record Payment
+                              </button>
+
+                              <button
+                                onClick={() => handlePayOnline(inv)}
+                                className="inline-flex items-center gap-1 rounded-lg bg-tide px-2.5 py-1.5 text-xs font-bold text-white hover:bg-tide-dark shadow-xs"
+                                title="Online Gateway Payment"
+                              >
+                                Pay Online
                               </button>
 
                               {hasPermission('finance:invoices:update') && (
@@ -294,6 +315,19 @@ export default function Invoices() {
                                 </button>
                               )}
                             </>
+                          )}
+
+                          {hasPermission('finance:invoices:update') && (
+                            <button
+                              onClick={() => {
+                                setStatusOverrideInvoice(inv);
+                                setShowStatusOverrideModal(true);
+                              }}
+                              className="rounded-lg bg-slate-100 p-2 text-slate-500 hover:bg-slate-200 hover:text-amber-600"
+                              title="Override Status"
+                            >
+                              <ShieldAlert className="h-4 w-4" />
+                            </button>
                           )}
                         </div>
                       </td>
@@ -611,6 +645,41 @@ export default function Invoices() {
             invoice={selectedInvoice}
             onClose={() => setShowCheckoutModal(false)}
             onSuccess={() => fetchInvoices()}
+          />
+        )}
+
+        {/* Record Payment Modal (Physical Card / POS Machine, Cash, Bank Transfer) */}
+        {showRecordPaymentModal && recordPaymentInvoice && (
+          <RecordPaymentModal
+            invoice={recordPaymentInvoice}
+            onClose={() => {
+              setShowRecordPaymentModal(false);
+              setRecordPaymentInvoice(null);
+            }}
+            onSuccess={() => fetchInvoices()}
+          />
+        )}
+
+        {/* Status Override Modal */}
+        {showStatusOverrideModal && statusOverrideInvoice && (
+          <StatusOverrideModal
+            invoice={statusOverrideInvoice}
+            onClose={() => {
+              setShowStatusOverrideModal(false);
+              setStatusOverrideInvoice(null);
+            }}
+            onSuccess={() => fetchInvoices()}
+          />
+        )}
+
+        {/* Payment Evidence Modal */}
+        {showEvidenceModal && selectedEvidencePayment && (
+          <PaymentEvidenceModal
+            payment={selectedEvidencePayment}
+            onClose={() => {
+              setShowEvidenceModal(false);
+              setSelectedEvidencePayment(null);
+            }}
           />
         )}
       </div>

@@ -12,7 +12,10 @@ const financeService = {
 
   // Online Checkout & Payments
   processCheckout: (data) => api.post('/finance/checkout', data),
+  recordPayment: (data) => api.post('/finance/record-payment', data),
+  overrideInvoiceStatus: (id, data) => api.patch(`/finance/invoices/${id}/status-override`, data),
   getPayments: (params) => api.get('/finance/payments', { params }),
+  getPaymentEvidence: (id) => api.get(`/finance/payments/${id}/evidence`),
 
   // Refunds
   getRefunds: (params) => api.get('/finance/refunds', { params }),
