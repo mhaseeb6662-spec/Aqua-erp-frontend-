@@ -359,25 +359,39 @@ export default function Invoices() {
                   <div></div>
                 </div>
 
-                {/* Addresses */}
-                <div className="grid grid-cols-2 gap-8 text-xs pt-6 pb-8">
+                {/* Addresses & Student Information */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-xs pt-6 pb-6 border-b border-slate-100">
+                  {/* Bill From */}
                   <div className="space-y-1">
                     <p className="font-bold text-slate-700 uppercase tracking-wider text-[11px]">BILL FROM</p>
-                    <p className="font-medium text-slate-900">Aqua Fishing Academy</p>
+                    <p className="font-bold text-slate-900">Aqua Fishing Academy</p>
                     <p className="text-slate-600">United Arab Emirates</p>
                     <p className="text-slate-600">+971 56 990 5688</p>
                     <p className="text-slate-600">info@aquafishingacademy.com</p>
                   </div>
+
+                  {/* Bill To */}
                   <div className="space-y-1">
-                    <p className="font-bold text-slate-700 uppercase tracking-wider text-[11px]">BILL TO</p>
-                    <p className="font-medium text-slate-900">{selectedInvoice.customer?.fullName || 'Sample Name'}</p>
+                    <p className="font-bold text-slate-700 uppercase tracking-wider text-[11px]">BILL TO / PAYER</p>
+                    <p className="font-bold text-slate-900">{selectedInvoice.customer?.fullName || 'Customer'}</p>
                     <p className="text-slate-600">{selectedInvoice.branch?.city || 'United Arab Emirates'}</p>
-                    <p className="text-slate-600">{selectedInvoice.customer?.email || 'abc@xyz.com'}</p>
+                    <p className="text-slate-600">{selectedInvoice.customer?.email || '—'}</p>
+                  </div>
+
+                  {/* Student Information */}
+                  <div className="space-y-1 bg-slate-50/80 p-3 rounded-xl border border-slate-100">
+                    <p className="font-bold text-tide uppercase tracking-wider text-[11px]">STUDENT INFORMATION</p>
+                    <p className="font-bold text-slate-900">{selectedInvoice.student?.fullName || selectedInvoice.customer?.fullName}</p>
+                    {selectedInvoice.student?.studentCode && (
+                      <p className="text-slate-600 font-mono text-[11px]">ID: {selectedInvoice.student.studentCode}</p>
+                    )}
+                    <p className="text-slate-600 truncate">{selectedInvoice.program?.title || 'Maritime Program'}</p>
+                    <p className="text-slate-500 font-medium">{selectedInvoice.branch?.name || 'Dubai Marina Branch'}</p>
                   </div>
                 </div>
 
                 {/* Line Items Table */}
-                <div className="border-t border-b border-slate-300 py-2">
+                <div className="border-b border-slate-300 py-2">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="text-slate-700 font-bold uppercase tracking-wider text-[11px]">
@@ -414,7 +428,7 @@ export default function Invoices() {
                     {selectedInvoice.discount > 0 && (
                       <div className="flex justify-between text-emerald-600">
                         <span>Discount:</span>
-                        <span>-${selectedInvoice.discount}</span>
+                        <span>-{formatAED(selectedInvoice.discount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-slate-600">
