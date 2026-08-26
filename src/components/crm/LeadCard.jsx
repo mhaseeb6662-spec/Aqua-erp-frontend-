@@ -12,9 +12,16 @@ export default function LeadCard({ lead, onDragStart }) {
       <Link to={`/leads/${lead._id}`} className="block">
         <p className="truncate text-sm font-semibold text-marine hover:text-tide">{lead.fullName}</p>
       </Link>
-      <p className="mt-1 flex items-center gap-1.5 text-xs text-ink/50">
-        <Phone className="h-3 w-3" /> {lead.phone || '—'}
-      </p>
+      <div className="mt-1 flex items-center justify-between text-xs text-ink/50">
+        <span className="flex items-center gap-1.5 truncate">
+          <Phone className="h-3 w-3 shrink-0" /> {lead.phone || '—'}
+        </span>
+        {lead.createdAt && (
+          <span className="text-[10.5px] font-medium text-slate-400 shrink-0" title={new Date(lead.createdAt).toLocaleString()}>
+            {new Date(lead.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+          </span>
+        )}
+      </div>
       <div className="mt-2.5 flex items-center justify-between">
         <SourceBadge source={lead.source} />
         {lead.assignedTo?.fullName ? (
