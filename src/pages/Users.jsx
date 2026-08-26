@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, Search, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ChevronLeft, ChevronRight, FileSpreadsheet, Users as UsersIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import Loader from '../components/common/Loader';
 import StatusBadge from '../components/common/StatusBadge';
 import ConfirmModal from '../components/common/ConfirmModal';
 import UserFormModal from '../components/users/UserFormModal';
+import StudentMigrationModal from '../components/users/StudentMigrationModal';
 import userService from '../services/userService';
 import roleService from '../services/roleService';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +21,7 @@ export default function Users() {
   const [meta, setMeta] = useState({ totalPages: 1, total: 0 });
 
   const [formOpen, setFormOpen] = useState(false);
+  const [migrationModalOpen, setMigrationModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
@@ -72,15 +74,28 @@ export default function Users() {
           />
         </div>
 
-        {hasPermission('core:users:create') && (
-          <button
-            className="btn-primary"
-            onClick={() => { setEditingUser(null); setFormOpen(true); }}
-          >
-            <Plus className="h-4 w-4" />
-            Add user
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {hasPermission('core:users:create') && (
+            <>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition"
+                onClick={() => setMigrationModalOpen(true)}
+              >
+                <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                Migrate Students
+              </button>
+
+              <button
+                className="btn-primary"
+                onClick={() => { setEditingUser(null); setFormOpen(true); }}
+              >
+                <Plus className="h-4 w-4" />
+                Add user
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="card overflow-hidden !p-0">
@@ -168,6 +183,15 @@ export default function Users() {
         roles={roles}
         editingUser={editingUser}
       />
+
+      {migrationModalOpen && (
+        <StudentMigrationModal
+          onClose={() => setMigrationModalOpen(false)}
+          onSuccess={() => {
+            loadUsers();
+          }}
+        />
+      )}
 
       <ConfirmModal
         open={!!deleteTarget}
