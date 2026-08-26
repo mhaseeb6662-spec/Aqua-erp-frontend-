@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight, CalendarPlus, Clock, GraduationCap,
   Trash2, Pencil, CheckCircle2, XCircle, CalendarDays, Filter, BookOpen, User, MapPin, SlidersHorizontal,
+  CreditCard, Users, Sparkles, AlertCircle, Plus
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -14,10 +15,16 @@ import CalendarDayView from '../../components/crm/CalendarDayView';
 import CalendarListView from '../../components/crm/CalendarListView';
 import CalendarEventDetailPanel from '../../components/crm/CalendarEventDetailPanel';
 import calendarService from '../../services/calendarService';
-import { CALENDAR_STATUS_STYLES, CALENDAR_TYPE_STYLES } from '../../constants/crm';
+import {
+  CALENDAR_STATUS_STYLES,
+  CALENDAR_TYPE_STYLES,
+  PROGRAM_COLOR_THEMES,
+  getProgramTheme,
+  FINANCIAL_STATUS_BADGE_STYLES,
+} from '../../constants/crm';
 import { useAuth } from '../../context/AuthContext';
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const toKey = (d) => {
   if (!d) return '';
@@ -45,9 +52,22 @@ const isSameDay = (a, b) => toKey(a) === toKey(b);
 
 const startOfWeek = (d) => {
   const start = new Date(d);
-  start.setDate(start.getDate() - start.getDay());
+  const day = start.getDay(); // 0 is Sun, 1 is Mon...
+  const diff = (day === 0 ? -6 : 1) - day;
+  start.setDate(start.getDate() + diff);
   start.setHours(0, 0, 0, 0);
   return start;
+};
+
+const format12Hour = (timeStr) => {
+  if (!timeStr) return '';
+  const [hStr, mStr] = timeStr.split(':');
+  const h = Number(hStr);
+  const m = mStr || '00';
+  if (isNaN(h)) return timeStr;
+  const ampm = h >= 12 ? 'pm' : 'am';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${String(h12).padStart(2, '0')}:${m} ${ampm}`;
 };
 
 export default function CalendarPage() {
@@ -89,8 +109,10 @@ export default function CalendarPage() {
 
   const gridDays = useMemo(() => {
     const firstOfMonth = new Date(monthAnchor);
+    const dayOfWeek = firstOfMonth.getDay(); // 0 (Sun) to 6 (Sat)
+    const offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Monday as 0
     const gridStart = new Date(firstOfMonth);
-    gridStart.setDate(1 - firstOfMonth.getDay());
+    gridStart.setDate(firstOfMonth.getDate() - offset);
 
     const days = [];
     for (let i = 0; i < 42; i++) {
@@ -167,7 +189,7 @@ export default function CalendarPage() {
       if (!map[key]) map[key] = [];
       map[key].push(ev);
     });
-    Object.values(map).forEach((list) => list.sort((a, b) => a.startTime.localeCompare(b.startTime)));
+    Object.values(map).forEach((list) => list.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || '')));
     return map;
   }, [events]);
 
@@ -203,16 +225,6 @@ export default function CalendarPage() {
       loadEvents();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to remove this event.');
-    }
-  };
-
-  const handleStatusToggle = async (event) => {
-    const next = event.status === 'completed' ? 'scheduled' : 'completed';
-    try {
-      await calendarService.updateStatus(event._id, next);
-      loadEvents();
-    } catch {
-      toast.error('Failed to update status.');
     }
   };
 
@@ -252,69 +264,19 @@ export default function CalendarPage() {
 
   return (
     <DashboardLayout title="Calendar & Class Schedule">
-      {/* Top Header & Main Control Bar */}
+      {/* Top Header & Main Control Bar (Reference Image Style) */}
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        {/* Date Navigation & Views */}
-        <div className="flex flex-wrap items-center gap-3">
-          <button className="btn-secondary !px-2.5 !py-2" onClick={goPrev}>
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <h2 className="min-w-[11rem] text-center text-lg font-bold text-marine">
-            {view === 'month' ? monthLabel : view === 'week' ? weekLabel : view === 'day' ? dayLabel : 'Event List'}
-          </h2>
-          <button className="btn-secondary !px-2.5 !py-2" onClick={goNext}>
-            <ChevronRight className="h-4 w-4" />
-          </button>
-
-          {/* Today Button */}
-          <button className="btn-secondary text-xs font-semibold" onClick={goToday}>
-            Today
-          </button>
-
-          {/* Date Picker Input */}
-          <div className="flex items-center gap-1.5 rounded-xl border border-marine/10 bg-white px-2.5 py-1.5 shadow-xs">
-            <span className="text-xs font-medium text-ink/50">Jump to:</span>
-            <input
-              type="date"
-              className="border-none bg-transparent text-xs font-semibold text-marine focus:ring-0 cursor-pointer"
-              value={toKey(selectedDay)}
-              onChange={(e) => {
-                if (!e.target.value) return;
-                const picked = new Date(e.target.value);
-                setSelectedDay(picked);
-                setMonthAnchor(new Date(picked.getFullYear(), picked.getMonth(), 1));
-                setWeekAnchor(startOfWeek(picked));
-              }}
-            />
-          </div>
-
-          {/* Views Switcher: Month, Week, Day, List */}
-          <div className="flex items-center gap-1 rounded-xl bg-marine/[0.04] p-1 border border-marine/10">
-            {['month', 'week', 'day', 'list'].map((v) => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-all ${
-                  view === v ? 'bg-white text-marine shadow-xs font-bold' : 'text-ink/60 hover:text-ink'
-                }`}
-              >
-                {v} View
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Top Filters & Action Button */}
+        {/* Left Side: Staff & Location Filters */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Staff Filter (Default: All Staff) */}
           <div className="flex items-center gap-1.5">
             <User className="h-4 w-4 text-tide hidden sm:inline" />
             <select
-              className="input-field !w-auto !py-2 text-xs font-medium"
+              className="input-field !w-auto !py-2 text-xs font-semibold"
               value={staffFilter}
               onChange={(e) => setStaffFilter(e.target.value)}
             >
-              <option value="">All Staff</option>
+              <option value="">All staff</option>
               {teachers.map((t) => (
                 <option key={t._id} value={t._id}>{t.fullName}</option>
               ))}
@@ -325,11 +287,11 @@ export default function CalendarPage() {
           <div className="flex items-center gap-1.5">
             <MapPin className="h-4 w-4 text-sandbar-dark hidden sm:inline" />
             <select
-              className="input-field !w-auto !py-2 text-xs font-medium"
+              className="input-field !w-auto !py-2 text-xs font-semibold"
               value={locationFilter}
               onChange={(e) => setLocationFilter(e.target.value)}
             >
-              <option value="">All Locations</option>
+              <option value="">Select location</option>
               {locations.map((loc) => (
                 <option key={loc} value={loc}>{loc}</option>
               ))}
@@ -346,12 +308,66 @@ export default function CalendarPage() {
             <SlidersHorizontal className="h-3.5 w-3.5" />
             Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
           </button>
+        </div>
+
+        {/* Center: Navigation Controls */}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button className="btn-secondary !px-2.5 !py-2" onClick={goPrev} title="Previous">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          
+          <button className="btn-secondary text-xs font-bold !px-3 !py-2" onClick={goToday}>
+            Today
+          </button>
+
+          <h2 className="min-w-[12rem] text-center text-base font-display font-bold text-marine">
+            {view === 'month' ? monthLabel : view === 'week' ? weekLabel : view === 'day' ? dayLabel : 'Event List'}
+          </h2>
+
+          <button className="btn-secondary !px-2.5 !py-2" onClick={goNext} title="Next">
+            <ChevronRight className="h-4 w-4" />
+          </button>
+
+          {/* Jump to Date Picker Input */}
+          <div className="hidden xl:flex items-center gap-1.5 rounded-xl border border-marine/10 bg-white px-2.5 py-1.5 shadow-2xs">
+            <span className="text-xs font-medium text-ink/50">Jump:</span>
+            <input
+              type="date"
+              className="border-none bg-transparent text-xs font-semibold text-marine focus:ring-0 cursor-pointer p-0"
+              value={toKey(selectedDay)}
+              onChange={(e) => {
+                if (!e.target.value) return;
+                const picked = new Date(e.target.value);
+                setSelectedDay(picked);
+                setMonthAnchor(new Date(picked.getFullYear(), picked.getMonth(), 1));
+                setWeekAnchor(startOfWeek(picked));
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Right Side: View Switcher & Add New Button */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Views Switcher: Month, Week, Day, List */}
+          <div className="flex items-center gap-1 rounded-xl bg-marine/[0.04] p-1 border border-marine/10">
+            {['month', 'week', 'day', 'list'].map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`rounded-lg px-3 py-1.5 text-xs capitalize transition-all ${
+                  view === v ? 'bg-white text-marine shadow-xs font-bold' : 'text-ink/60 hover:text-ink font-semibold'
+                }`}
+              >
+                {v.charAt(0).toUpperCase() + v.slice(1)}
+              </button>
+            ))}
+          </div>
 
           {/* Action Button: Add New Event */}
           {canCreate && (
-            <button className="btn-primary flex items-center gap-2" onClick={() => openAddModal(selectedDay)}>
-              <CalendarPlus className="h-4 w-4" />
-              Add New Event
+            <button className="btn-primary flex items-center gap-1.5 !py-2 !px-3 text-xs font-bold shadow-sm" onClick={() => openAddModal(selectedDay)}>
+              <Plus className="h-4 w-4" />
+              Add new
             </button>
           )}
         </div>
@@ -362,7 +378,7 @@ export default function CalendarPage() {
         <div className="mb-4 animate-rise rounded-xl border border-marine/10 bg-marine/[0.02] p-4 shadow-xs">
           <div className="flex items-center justify-between mb-3 border-b border-marine/10 pb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-marine flex items-center gap-1.5">
-              <Filter className="h-3.5 w-3.5 text-tide" /> Calendar Filter Panel
+              <Filter className="h-3.5 w-3.5 text-tide" /> Extended Filters
             </span>
             {activeFilterCount > 0 && (
               <button
@@ -379,10 +395,9 @@ export default function CalendarPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
-            {/* Subject Filter */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-4">
             <div>
-              <label className="label-field !text-[11px]">Subject</label>
+              <label className="label-field !text-[11px]">Subject / Category</label>
               <select
                 className="input-field !py-1.5 text-xs"
                 value={subjectFilter}
@@ -395,7 +410,6 @@ export default function CalendarPage() {
               </select>
             </div>
 
-            {/* Event Type Filter */}
             <div>
               <label className="label-field !text-[11px]">Event Type</label>
               <select
@@ -409,7 +423,6 @@ export default function CalendarPage() {
               </select>
             </div>
 
-            {/* Published Status Filter */}
             <div>
               <label className="label-field !text-[11px]">Published Status</label>
               <select
@@ -423,7 +436,6 @@ export default function CalendarPage() {
               </select>
             </div>
 
-            {/* Capacity Filter */}
             <div>
               <label className="label-field !text-[11px]">Capacity</label>
               <select
@@ -440,20 +452,25 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* Main Calendar View Area */}
-      <div className={`grid gap-6 ${view === 'month' ? 'lg:grid-cols-[1fr_20rem]' : 'lg:grid-cols-1'}`}>
-        <div className="card !p-0 overflow-hidden border border-marine/10 shadow-xs">
-          {loading && <Loader label="Loading calendar..." />}
+      {/* Main Full-Width Calendar View Area */}
+      <div className="w-full">
+        <div className="card !p-0 overflow-hidden border border-slate-200 shadow-sm bg-white rounded-2xl">
+          {loading && <Loader label="Loading academy schedule..." />}
 
-          {/* 1. Month View */}
+          {/* 1. Month View (Full Width, 7 Columns, Rich Event Cards) */}
           {!loading && view === 'month' && (
             <>
-              <div className="grid grid-cols-7 border-b border-marine/[0.08] bg-marine/[0.02] text-xs font-bold uppercase tracking-wider text-ink/50">
+              {/* Day Header Row (Mon - Sun) */}
+              <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-[11px] font-extrabold uppercase tracking-wider text-slate-600">
                 {WEEKDAYS.map((w) => (
-                  <div key={w} className="px-3 py-2.5 text-center">{w}</div>
+                  <div key={w} className="px-3 py-3 text-center border-r border-slate-200 last:border-r-0">
+                    {w}
+                  </div>
                 ))}
               </div>
-              <div className="grid grid-cols-7">
+
+              {/* 42 Date Grid Cells */}
+              <div className="grid grid-cols-7 divide-y divide-slate-200">
                 {gridDays.map((day) => {
                   const key = toKey(day);
                   const dayEvents = eventsByDay[key] || [];
@@ -462,37 +479,133 @@ export default function CalendarPage() {
                   const isSelected = isSameDay(day, selectedDay);
 
                   return (
-                    <button
+                    <div
                       key={key}
                       onClick={() => setSelectedDay(day)}
-                      className={`min-h-[6rem] border-b border-r border-marine/[0.05] p-2 text-left align-top transition-colors last:border-r-0
-                        ${inMonth ? 'bg-white' : 'bg-marine/[0.015]'}
-                        ${isSelected ? 'ring-2 ring-inset ring-tide' : 'hover:bg-marine/[0.02]'}`}
+                      className={`min-h-[10.5rem] border-r border-slate-200 p-2 text-left align-top transition-colors last:border-r-0 flex flex-col justify-between
+                        ${inMonth ? 'bg-white' : 'bg-slate-50/50'}
+                        ${isSelected ? 'ring-2 ring-inset ring-tide/80' : 'hover:bg-slate-50/80'}`}
                     >
-                      <span
-                        className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold
-                          ${isToday ? 'bg-tide text-white' : inMonth ? 'text-marine' : 'text-ink/30'}`}
-                      >
-                        {day.getDate()}
-                      </span>
-                      <div className="mt-1 space-y-1">
-                        {dayEvents.slice(0, 3).map((ev) => (
-                          <div
-                            key={ev._id}
-                            role="button"
-                            tabIndex={0}
-                            onClick={(e) => { e.stopPropagation(); openDetail(ev); }}
-                            className={`truncate rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${CALENDAR_TYPE_STYLES[ev.type] || 'bg-marine/10'}`}
-                            title={`${ev.startTime} ${ev.title}`}
+                      {/* Date Top Header */}
+                      <div className="flex items-center justify-between pb-1">
+                        <span
+                          className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-extrabold
+                            ${isToday ? 'bg-tide text-white shadow-xs' : inMonth ? 'text-marine' : 'text-slate-400'}`}
+                        >
+                          {day.getDate()}
+                        </span>
+
+                        {canCreate && inMonth && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openAddModal(day); }}
+                            className="opacity-0 group-hover:opacity-100 hover:opacity-100 p-1 rounded-md text-slate-400 hover:text-tide hover:bg-slate-100 transition"
+                            title="Add event on this date"
                           >
-                            {ev.startTime} {ev.subject ? `[${ev.subject}] ` : ''}{ev.title}
-                          </div>
-                        ))}
-                        {dayEvents.length > 3 && (
-                          <p className="px-1 text-[10px] font-bold text-tide-dark">+{dayEvents.length - 3} more</p>
+                            <Plus className="h-3 w-3" />
+                          </button>
                         )}
                       </div>
-                    </button>
+
+                      {/* Event Cards inside Date Cell */}
+                      <div className="space-y-1.5 flex-1 mt-1">
+                        {dayEvents.slice(0, 3).map((ev) => {
+                          const theme = getProgramTheme(ev.programDetails?.calendarColor || 'blue');
+                          const staffNames = Array.isArray(ev.teachers) && ev.teachers.length > 0
+                            ? ev.teachers.map((t) => t.fullName).join(', ')
+                            : ev.teacher?.fullName || '';
+
+                          const regCount = ev.registrations?.length || 0;
+                          const capacityLimit = ev.capacity || (ev.seatType === 'limited' ? 10 : null);
+                          const seatLabel = capacityLimit ? `(${regCount}/${capacityLimit})` : `(${regCount})`;
+
+                          const participantNames = Array.isArray(ev.registrations) && ev.registrations.length > 0
+                            ? ev.registrations
+                                .map((r) => r.student?.fullName || r.lead?.fullName)
+                                .filter(Boolean)
+                                .slice(0, 2)
+                                .join(', ') + (ev.registrations.length > 2 ? ` +${ev.registrations.length - 2} more` : '')
+                            : '';
+
+                          const financialStatus = ev.financialSummary?.aggregateStatus || 'PENDING';
+                          const financialBadgeStyle = FINANCIAL_STATUS_BADGE_STYLES[financialStatus] || FINANCIAL_STATUS_BADGE_STYLES.PENDING;
+                          const financialLabel = ev.financialSummary?.statusLabel || financialStatus;
+
+                          return (
+                            <div
+                              key={ev._id}
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => { e.stopPropagation(); openDetail(ev); }}
+                              className={`group relative rounded-xl p-2 text-left transition-all duration-150 cursor-pointer shadow-2xs hover:shadow-xs hover:scale-[1.01] ${theme.card}`}
+                            >
+                              {/* Row 1: Time & Seat Capacity */}
+                              <div className="flex items-center justify-between gap-1 text-[10px] font-mono font-bold">
+                                <span className="truncate tracking-tight font-extrabold text-marine">
+                                  {format12Hour(ev.startTime)}{ev.endTime ? ` – ${format12Hour(ev.endTime)}` : ''}
+                                </span>
+                                <span className="shrink-0 font-bold opacity-80 text-marine">
+                                  {seatLabel}
+                                </span>
+                              </div>
+
+                              {/* Row 2: Program Title */}
+                              <p className="font-display text-[11.5px] font-bold leading-snug mt-1 text-marine line-clamp-2">
+                                {ev.title || ev.programDetails?.title}
+                              </p>
+
+                              {/* Row 3: Program Category & Level */}
+                              <p className="text-[10px] font-semibold text-slate-700 opacity-90 leading-tight mt-0.5 truncate">
+                                {ev.programDetails?.category || ev.subject || 'Class'}
+                                {ev.programDetails?.level ? ` • ${ev.programDetails.level}` : ''}
+                              </p>
+
+                              {/* Row 4: Coach & Location */}
+                              <div className="mt-1 space-y-0.5 text-[10px] text-slate-700">
+                                {staffNames && (
+                                  <div className="flex items-center gap-1 font-semibold truncate">
+                                    <User className="h-3 w-3 text-tide shrink-0" />
+                                    <span className="truncate">{staffNames}</span>
+                                  </div>
+                                )}
+                                {(ev.location || ev.branch?.name) && (
+                                  <div className="flex items-center gap-1 font-medium opacity-85 truncate">
+                                    <MapPin className="h-3 w-3 text-sandbar-dark shrink-0" />
+                                    <span className="truncate">{ev.location || ev.branch?.name}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Row 5: Automated Invoice Badge & Participant Preview */}
+                              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-1 border-t border-slate-900/10 pt-1">
+                                <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] uppercase tracking-wide font-extrabold ${financialBadgeStyle}`}>
+                                  {financialLabel}
+                                </span>
+
+                                {participantNames && (
+                                  <span className="text-[9.5px] font-medium text-slate-600 truncate max-w-[110px]" title={participantNames}>
+                                    {participantNames}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* Overflow "+N more" Button */}
+                        {dayEvents.length > 3 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedDay(day);
+                              setView('day');
+                            }}
+                            className="w-full text-center py-1 rounded-lg bg-marine/[0.04] hover:bg-marine/[0.08] text-[11px] font-bold text-tide transition-colors"
+                          >
+                            +{dayEvents.length - 3} more events
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -529,108 +642,6 @@ export default function CalendarPage() {
             />
           )}
         </div>
-
-        {/* Selected Day Side Panel (Month View only) */}
-        {view === 'month' && (
-          <div className="card flex flex-col gap-4 border border-marine/10">
-            <div className="flex items-center justify-between border-b border-marine/10 pb-3">
-              <div className="flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 text-tide" />
-                <h3 className="font-bold text-marine text-sm">
-                  {selectedDay.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}
-                </h3>
-              </div>
-              {canCreate && (
-                <button className="text-xs font-bold text-tide hover:text-tide-dark" onClick={() => openAddModal(selectedDay)}>
-                  + Add Event
-                </button>
-              )}
-            </div>
-
-            {selectedDayEvents.length === 0 ? (
-              <p className="py-8 text-center text-xs text-ink/40">No events or classes scheduled for this day.</p>
-            ) : (
-              <div className="space-y-3">
-                {selectedDayEvents.map((ev) => {
-                  const staffNames = Array.isArray(ev.teachers) && ev.teachers.length > 0
-                    ? ev.teachers.map((t) => t.fullName).join(', ')
-                    : ev.teacher?.fullName || '';
-
-                  return (
-                    <div key={ev._id} className="rounded-xl border border-marine/10 p-3.5 bg-white shadow-2xs hover:border-tide/40 transition-colors">
-                      <div className="flex items-start justify-between gap-2">
-                        <button className="text-left" onClick={() => openDetail(ev)}>
-                          {ev.subject && (
-                            <span className="badge mb-1 inline-flex items-center gap-1 border bg-tide/10 text-tide-dark text-[10px] font-bold">
-                              <BookOpen className="h-3 w-3" />
-                              {ev.subject}
-                            </span>
-                          )}
-                          <p className="text-sm font-bold text-marine hover:underline leading-snug">{ev.title}</p>
-                        </button>
-                        <span className={`badge shrink-0 text-[10px] ${CALENDAR_STATUS_STYLES[ev.status]}`}>
-                          {ev.status.replace('_', ' ')}
-                        </span>
-                      </div>
-
-                      <div className="mt-2.5 flex flex-wrap items-center gap-3 text-xs text-ink/60">
-                        <span className="flex items-center gap-1 font-semibold text-marine">
-                          <Clock className="h-3.5 w-3.5 text-tide shrink-0" />
-                          {ev.startTime}{ev.endTime ? ` – ${ev.endTime}` : ''}
-                        </span>
-                        {staffNames && (
-                          <span className="flex items-center gap-1 truncate max-w-[140px]">
-                            <GraduationCap className="h-3.5 w-3.5 text-tide shrink-0" />
-                            {staffNames}
-                          </span>
-                        )}
-                      </div>
-
-                      {ev.classDescription && (
-                        <p className="mt-2 text-xs text-ink/50 line-clamp-2">{ev.classDescription}</p>
-                      )}
-
-                      <div className="mt-3 flex items-center justify-between border-t border-marine/5 pt-2">
-                        <span className="text-[11px] font-medium text-ink/40">
-                          {ev.seatType === 'limited' ? `${ev.registrations?.length || 0}/${ev.capacity} Seats` : 'Unlimited'}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          {canUpdate && (
-                            <>
-                              <button
-                                className="rounded-lg p-1.5 text-ink/40 hover:bg-marine/5 hover:text-marine"
-                                title={ev.status === 'completed' ? 'Mark as scheduled' : 'Mark as completed'}
-                                onClick={() => handleStatusToggle(ev)}
-                              >
-                                {ev.status === 'completed' ? <XCircle className="h-4 w-4 text-coral" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
-                              </button>
-                              <button
-                                className="rounded-lg p-1.5 text-ink/40 hover:bg-marine/5 hover:text-marine"
-                                title="Edit"
-                                onClick={() => openEditModal(ev)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </button>
-                            </>
-                          )}
-                          {canDelete && (
-                            <button
-                              className="rounded-lg p-1.5 text-ink/40 hover:bg-coral/10 hover:text-coral"
-                              title="Remove"
-                              onClick={() => setDeleteTarget(ev)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Right-Side Slide Drawer for Add/Edit Event */}

@@ -15,6 +15,8 @@ import {
   CALENDAR_ATTENDANCE_STYLES,
   REGISTRATION_PAYMENT_STATUSES,
   REGISTRATION_PAYMENT_STYLES,
+  getProgramTheme,
+  FINANCIAL_STATUS_BADGE_STYLES,
 } from '../../constants/crm';
 
 export default function CalendarEventDetailPanel({
@@ -235,23 +237,54 @@ export default function CalendarEventDetailPanel({
           <div className="border-b border-slate-200 bg-slate-50/50 px-6 py-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  {event.subject && (
-                    <span className="badge inline-flex items-center gap-1 border bg-tide/15 text-tide-dark border-tide/30 text-[10px] font-bold">
-                      <BookOpen className="h-3 w-3" />
-                      {event.subject}
-                    </span>
-                  )}
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                  <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold ${getProgramTheme(event.programDetails?.calendarColor || 'blue').pill}`}>
+                    <BookOpen className="h-3 w-3" />
+                    {event.programDetails?.category || event.subject || 'Class'}
+                    {event.programDetails?.level ? ` • ${event.programDetails.level}` : ''}
+                  </span>
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] uppercase font-extrabold ${FINANCIAL_STATUS_BADGE_STYLES[event.financialSummary?.aggregateStatus] || FINANCIAL_STATUS_BADGE_STYLES.PENDING}`}>
+                    {event.financialSummary?.statusLabel || event.financialSummary?.aggregateStatus || 'PENDING'}
+                  </span>
                   <span className={`badge border text-[10px] ${CALENDAR_STATUS_STYLES[event.status]}`}>
-                    {event.status.replace('_', ' ')}
+                    {(event.status || 'scheduled').replace('_', ' ')}
                   </span>
                 </div>
-                <h2 className="text-lg font-bold text-marine">{event.title}</h2>
+                <h2 className="text-lg font-bold text-marine">{event.title || event.programDetails?.title}</h2>
               </div>
             </div>
 
+            {/* Financial Overview Card */}
+            {event.financialSummary && (
+              <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
+                <div className="flex items-center justify-between text-xs font-bold text-marine mb-2">
+                  <span className="flex items-center gap-1.5">
+                    <CreditCard className="h-3.5 w-3.5 text-tide" />
+                    Automated Invoicing & Revenue
+                  </span>
+                  <span className="text-[11px] font-semibold text-slate-500">
+                    {event.financialSummary.paidCount}/{event.financialSummary.totalRegistrations} Paid
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="rounded-lg bg-slate-50 p-1.5 border border-slate-100">
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase">Collected</p>
+                    <p className="font-extrabold text-emerald-700 font-mono">${event.financialSummary.totalCollected?.toLocaleString() || 0}</p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 p-1.5 border border-slate-100">
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase">Outstanding</p>
+                    <p className="font-extrabold text-rose-700 font-mono">${event.financialSummary.totalOutstanding?.toLocaleString() || 0}</p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 p-1.5 border border-slate-100">
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase">Status</p>
+                    <p className="font-extrabold text-marine uppercase text-[11px]">{event.financialSummary.aggregateStatus}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {event.classDescription && (
-              <p className="mt-2 text-xs text-slate-700 leading-relaxed bg-white p-3 rounded-lg border border-slate-200">
+              <p className="mt-3 text-xs text-slate-700 leading-relaxed bg-white p-3 rounded-lg border border-slate-200">
                 {event.classDescription}
               </p>
             )}
@@ -274,7 +307,7 @@ export default function CalendarEventDetailPanel({
                 ) : (
                   <>
                     <MapPin className="h-4 w-4 text-amber-700 shrink-0" />
-                    <span className="truncate">{event.location || 'Branch location'}</span>
+                    <span className="truncate">{event.location || event.branch?.name || 'Branch location'}</span>
                   </>
                 )}
               </div>

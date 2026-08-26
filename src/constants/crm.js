@@ -145,3 +145,96 @@ export const PAYMENT_STATUS_STYLES = {
   expired: 'bg-slate-100 text-slate-700 border border-slate-300 font-bold',
   cancelled: 'bg-rose-50 text-rose-800 border border-rose-200 font-bold',
 };
+
+// ---- Program Calendar Color Palettes ----
+export const PROGRAM_COLOR_THEMES = {
+  blue: {
+    key: 'blue',
+    name: 'Ocean Blue',
+    card: 'bg-blue-50/95 hover:bg-blue-100/90 text-blue-950 border border-blue-200 border-l-4 border-l-blue-600 shadow-2xs',
+    pill: 'bg-blue-100 text-blue-900 border border-blue-200 font-bold',
+    text: 'text-blue-950',
+    subtext: 'text-blue-800',
+    accent: '#2563EB',
+    dot: 'bg-blue-600',
+  },
+  emerald: {
+    key: 'emerald',
+    name: 'Emerald Sea',
+    card: 'bg-emerald-50/95 hover:bg-emerald-100/90 text-emerald-950 border border-emerald-200 border-l-4 border-l-emerald-600 shadow-2xs',
+    pill: 'bg-emerald-100 text-emerald-900 border border-emerald-200 font-bold',
+    text: 'text-emerald-950',
+    subtext: 'text-emerald-800',
+    accent: '#059669',
+    dot: 'bg-emerald-600',
+  },
+  teal: {
+    key: 'teal',
+    name: 'Coastal Teal',
+    card: 'bg-teal-50/95 hover:bg-teal-100/90 text-teal-950 border border-teal-200 border-l-4 border-l-teal-600 shadow-2xs',
+    pill: 'bg-teal-100 text-teal-900 border border-teal-200 font-bold',
+    text: 'text-teal-950',
+    subtext: 'text-teal-800',
+    accent: '#0D9488',
+    dot: 'bg-teal-600',
+  },
+  rose: {
+    key: 'rose',
+    name: 'Coral Rose',
+    card: 'bg-rose-50/95 hover:bg-rose-100/90 text-rose-950 border border-rose-200 border-l-4 border-l-rose-500 shadow-2xs',
+    pill: 'bg-rose-100 text-rose-900 border border-rose-200 font-bold',
+    text: 'text-rose-950',
+    subtext: 'text-rose-800',
+    accent: '#F43F5E',
+    dot: 'bg-rose-500',
+  },
+  amber: {
+    key: 'amber',
+    name: 'Sunburst Amber',
+    card: 'bg-amber-50/95 hover:bg-amber-100/90 text-amber-950 border border-amber-200 border-l-4 border-l-amber-500 shadow-2xs',
+    pill: 'bg-amber-100 text-amber-900 border border-amber-200 font-bold',
+    text: 'text-amber-950',
+    subtext: 'text-amber-800',
+    accent: '#D97706',
+    dot: 'bg-amber-500',
+  },
+  purple: {
+    key: 'purple',
+    name: 'Deep Purple',
+    card: 'bg-purple-50/95 hover:bg-purple-100/90 text-purple-950 border border-purple-200 border-l-4 border-l-purple-600 shadow-2xs',
+    pill: 'bg-purple-100 text-purple-900 border border-purple-200 font-bold',
+    text: 'text-purple-950',
+    subtext: 'text-purple-800',
+    accent: '#7C3AED',
+    dot: 'bg-purple-600',
+  },
+  indigo: {
+    key: 'indigo',
+    name: 'Royal Indigo',
+    card: 'bg-indigo-50/95 hover:bg-indigo-100/90 text-indigo-950 border border-indigo-200 border-l-4 border-l-indigo-600 shadow-2xs',
+    pill: 'bg-indigo-100 text-indigo-900 border border-indigo-200 font-bold',
+    text: 'text-indigo-950',
+    subtext: 'text-indigo-800',
+    accent: '#4F46E5',
+    dot: 'bg-indigo-600',
+  },
+};
+
+export const DEFAULT_PROGRAM_COLOR = 'blue';
+
+export const getProgramTheme = (colorKey) => {
+  return PROGRAM_COLOR_THEMES[colorKey] || PROGRAM_COLOR_THEMES[DEFAULT_PROGRAM_COLOR];
+};
+
+// ---- Automated Financial & Invoice Status Badges ----
+export const FINANCIAL_STATUS_BADGE_STYLES = {
+  PAID: 'bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold shadow-2xs',
+  'PARTIALLY PAID': 'bg-amber-100 text-amber-900 border border-amber-300 font-bold shadow-2xs',
+  OVERDUE: 'bg-rose-100 text-rose-800 border border-rose-300 font-bold shadow-2xs',
+  INVOICED: 'bg-sky-100 text-sky-800 border border-sky-300 font-bold shadow-2xs',
+  PENDING: 'bg-slate-100 text-slate-700 border border-slate-300 font-semibold shadow-2xs',
+  REFUNDED: 'bg-purple-100 text-purple-800 border border-purple-300 font-bold shadow-2xs',
+  SCHEDULED: 'bg-slate-100 text-slate-600 border border-slate-200 font-medium',
+  EMPTY: 'bg-slate-100 text-slate-500 border border-slate-200 font-medium',
+};
+

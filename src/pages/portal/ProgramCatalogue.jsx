@@ -56,6 +56,7 @@ export default function ProgramCatalogue() {
     ageGroup: 'All Ages',
     durationWeeks: 4,
     price: 299,
+    calendarColor: 'blue',
     branches: [],
   });
 
@@ -769,6 +770,23 @@ export default function ProgramCatalogue() {
                       className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700">Calendar Card Color Theme</label>
+                  <select
+                    value={newProgram.calendarColor}
+                    onChange={(e) => setNewProgram({ ...newProgram, calendarColor: e.target.value })}
+                    className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none font-semibold"
+                  >
+                    <option value="blue">Blue (Fishing Essentials / Standard)</option>
+                    <option value="emerald">Emerald (Offshore & Deep Sea)</option>
+                    <option value="teal">Teal (Kayak & Boating)</option>
+                    <option value="rose">Rose (Junior & Youth Angler)</option>
+                    <option value="amber">Amber (Custom & Private)</option>
+                    <option value="purple">Purple (Spearfishing & Diving)</option>
+                    <option value="indigo">Indigo (Master Class)</option>
+                  </select>
                 </div>
 
                 <div>

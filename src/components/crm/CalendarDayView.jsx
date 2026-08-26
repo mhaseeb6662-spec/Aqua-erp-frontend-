@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { User, Clock, MapPin, BookOpen, Sparkles, CalendarDays, ListFilter, LayoutGrid } from 'lucide-react';
-import { CALENDAR_TYPE_STYLES, CALENDAR_STATUS_STYLES } from '../../constants/crm';
+import { CALENDAR_TYPE_STYLES, CALENDAR_STATUS_STYLES, getProgramTheme, FINANCIAL_STATUS_BADGE_STYLES } from '../../constants/crm';
 
 const TIME_SLOTS = [
   '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00',
@@ -115,19 +115,22 @@ export default function CalendarDayView({
             Events outside standard hours ({unscheduledEvents.length}):
           </p>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {unscheduledEvents.map((ev) => (
-              <div
-                key={ev._id}
-                onClick={() => onEventClick && onEventClick(ev)}
-                className="cursor-pointer rounded-xl border border-amber-200 bg-white p-3 shadow-xs hover:border-amber-400"
-              >
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="font-mono font-bold text-amber-900">{ev.startTime}</span>
-                  <span className="badge bg-amber-100 text-amber-900 text-[10px] font-bold">Special Timing</span>
+            {unscheduledEvents.map((ev) => {
+              const theme = getProgramTheme(ev.programDetails?.calendarColor || 'blue');
+              return (
+                <div
+                  key={ev._id}
+                  onClick={() => onEventClick && onEventClick(ev)}
+                  className={`cursor-pointer rounded-xl border p-3 shadow-xs hover:scale-[1.01] transition-all ${theme.card}`}
+                >
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-mono font-bold text-marine">{ev.startTime}</span>
+                    <span className="badge bg-amber-100 text-amber-900 text-[10px] font-bold">Special Timing</span>
+                  </div>
+                  <p className="font-bold text-marine text-sm">{ev.title || ev.programDetails?.title}</p>
                 </div>
-                <p className="font-bold text-marine text-sm">{ev.title}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -161,9 +164,14 @@ export default function CalendarDayView({
                   ) : (
                     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                       {slotEvents.map((ev) => {
+                        const theme = getProgramTheme(ev.programDetails?.calendarColor || 'blue');
                         const staffNames = Array.isArray(ev.teachers) && ev.teachers.length > 0
                           ? ev.teachers.map((t) => t.fullName).join(', ')
                           : ev.teacher?.fullName || 'Unassigned';
+
+                        const financialStatus = ev.financialSummary?.aggregateStatus || 'PENDING';
+                        const financialBadgeStyle = FINANCIAL_STATUS_BADGE_STYLES[financialStatus] || FINANCIAL_STATUS_BADGE_STYLES.PENDING;
+                        const financialLabel = ev.financialSummary?.statusLabel || financialStatus;
 
                         return (
                           <div
@@ -172,42 +180,38 @@ export default function CalendarDayView({
                               e.stopPropagation();
                               onEventClick && onEventClick(ev);
                             }}
-                            className={`group/card relative flex flex-col justify-between rounded-xl border p-3 shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md ${CALENDAR_TYPE_STYLES[ev.type] || 'bg-slate-50 border-slate-300'}`}
+                            className={`group/card relative flex flex-col justify-between rounded-xl p-3 shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md cursor-pointer ${theme.card}`}
                           >
                             <div>
                               <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                                <span className="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 font-mono text-[11px] font-bold text-marine border border-slate-200">
+                                <span className="inline-flex items-center gap-1 rounded-md bg-white/80 px-2 py-0.5 font-mono text-[11px] font-bold text-marine border border-slate-200">
                                   <Clock className="h-3 w-3 text-tide" />
                                   {ev.startTime}{ev.endTime ? ` - ${ev.endTime}` : ''}
                                 </span>
-                                {ev.subject && (
-                                  <span className="inline-flex items-center gap-1 rounded-md bg-tide/10 px-2 py-0.5 text-[10px] font-bold text-tide-dark">
-                                    <BookOpen className="h-3 w-3" />
-                                    {ev.subject}
-                                  </span>
-                                )}
+                                <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] uppercase tracking-wide font-extrabold ${financialBadgeStyle}`}>
+                                  {financialLabel}
+                                </span>
                               </div>
 
                               <p className="font-bold text-marine group-hover/card:underline text-sm leading-snug">
-                                {ev.title}
+                                {ev.title || ev.programDetails?.title}
                               </p>
 
-                              {ev.classDescription && (
-                                <p className="mt-1 line-clamp-2 text-xs text-slate-700">
-                                  {ev.classDescription}
-                                </p>
-                              )}
+                              <p className="text-[11px] font-semibold text-slate-700 opacity-90 mt-0.5">
+                                {ev.programDetails?.category || ev.subject || 'Class'}
+                                {ev.programDetails?.level ? ` • ${ev.programDetails.level}` : ''}
+                              </p>
                             </div>
 
-                            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-2 text-[11px] text-slate-700">
+                            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-900/10 pt-2 text-[11px] text-slate-700">
                               <span className="flex items-center gap-1 truncate font-medium">
                                 <User className="h-3 w-3 text-tide shrink-0" />
                                 {staffNames}
                               </span>
-                              {ev.location && (
+                              {(ev.location || ev.branch?.name) && (
                                 <span className="flex items-center gap-0.5 truncate text-slate-600 font-medium">
                                   <MapPin className="h-3 w-3 text-amber-700 shrink-0" />
-                                  {ev.location}
+                                  {ev.location || ev.branch?.name}
                                 </span>
                               )}
                             </div>
@@ -232,43 +236,50 @@ export default function CalendarDayView({
           ) : (
             <div className="space-y-2.5">
               {events.map((ev) => {
+                const theme = getProgramTheme(ev.programDetails?.calendarColor || 'blue');
                 const staffNames = Array.isArray(ev.teachers) && ev.teachers.length > 0
                   ? ev.teachers.map((t) => t.fullName).join(', ')
                   : ev.teacher?.fullName || 'Unassigned';
+
+                const financialStatus = ev.financialSummary?.aggregateStatus || 'PENDING';
+                const financialBadgeStyle = FINANCIAL_STATUS_BADGE_STYLES[financialStatus] || FINANCIAL_STATUS_BADGE_STYLES.PENDING;
+                const financialLabel = ev.financialSummary?.statusLabel || financialStatus;
 
                 return (
                   <div
                     key={ev._id}
                     onClick={() => onEventClick && onEventClick(ev)}
-                    className="cursor-pointer rounded-xl border border-slate-200 bg-white p-4 shadow-xs transition-all hover:border-slate-300 hover:shadow-sm"
+                    className={`cursor-pointer rounded-xl p-4 shadow-xs transition-all hover:shadow-sm ${theme.card}`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="badge inline-flex items-center gap-1 border bg-blue-50 text-blue-800 border-blue-200 text-[10px] font-bold">
+                        <span className="badge inline-flex items-center gap-1 border bg-white/90 text-marine border-slate-200 text-[10px] font-bold">
                           <Clock className="h-3 w-3 text-tide" />
                           {ev.startTime}{ev.endTime ? ` - ${ev.endTime}` : ''}
                         </span>
-                        <span className="text-xs font-bold text-slate-600 uppercase">Event</span>
-                        <span className="font-bold text-marine">{ev.title}</span>
+                        <span className="text-xs font-bold text-slate-600 uppercase">
+                          {ev.programDetails?.category || 'Event'}
+                        </span>
+                        <span className="font-bold text-marine">{ev.title || ev.programDetails?.title}</span>
                       </div>
 
-                      <span className={`badge shrink-0 text-[10px] ${CALENDAR_STATUS_STYLES[ev.status] || 'bg-slate-100'}`}>
-                        {ev.status}
+                      <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] uppercase tracking-wide font-extrabold ${financialBadgeStyle}`}>
+                        {financialLabel}
                       </span>
                     </div>
 
-                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-700">
+                    <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-700">
                       <span className="flex items-center gap-1 font-medium">
                         <User className="h-3.5 w-3.5 text-tide" /> Staff: {staffNames}
                       </span>
-                      {ev.location && (
+                      {(ev.location || ev.branch?.name) && (
                         <span className="flex items-center gap-1 font-medium">
-                          <MapPin className="h-3.5 w-3.5 text-amber-700" /> Location: {ev.location}
+                          <MapPin className="h-3.5 w-3.5 text-amber-700" /> Location: {ev.location || ev.branch?.name}
                         </span>
                       )}
-                      {ev.subject && (
+                      {ev.programDetails?.level && (
                         <span className="flex items-center gap-1 font-medium">
-                          <BookOpen className="h-3.5 w-3.5 text-tide" /> Subject: {ev.subject}
+                          Level: {ev.programDetails.level}
                         </span>
                       )}
                     </div>

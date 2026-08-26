@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
-import { X, CalendarPlus, Search, UserPlus, Check, Sparkles, MapPin, Users, BookOpen } from 'lucide-react';
+import { X, CalendarPlus, Search, UserPlus, Check, Sparkles, MapPin, Users, BookOpen, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
 import calendarService from '../../services/calendarService';
 import leadService from '../../services/leadService';
 import customerService from '../../services/customerService';
+import portalService from '../../services/portalService';
 import StudentFormModal from './StudentFormModal';
 import { CALENDAR_SUBJECT_OPTIONS } from '../../constants/crm';
 
 const emptyForm = {
   type: 'class',
   eventType: 'one-time',
+  program: '',
+  branch: '',
   subject: '',
   title: '',
   classDescription: '',
@@ -20,8 +23,8 @@ const emptyForm = {
   teachers: [],
   isOnline: false,
   location: '',
-  seatType: 'unlimited',
-  capacity: '',
+  seatType: 'limited',
+  capacity: '10',
   publishedStatus: 'published',
 };
 
@@ -38,6 +41,8 @@ export default function CalendarEventFormModal({
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [programsList, setProgramsList] = useState([]);
+  const [branchesList, setBranchesList] = useState([]);
 
   const [leadQuery, setLeadQuery] = useState('');
   const [leadResults, setLeadResults] = useState([]);
@@ -55,6 +60,11 @@ export default function CalendarEventFormModal({
   const allSubjectOptions = Array.from(new Set([...CALENDAR_SUBJECT_OPTIONS, ...subjects])).sort();
 
   useEffect(() => {
+    portalService.getPrograms().then(({ data }) => setProgramsList(data.data || [])).catch(() => {});
+    portalService.getBranches().then(({ data }) => setBranchesList(data.data || [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (!open) return;
 
     if (editingEvent) {
@@ -67,6 +77,8 @@ export default function CalendarEventFormModal({
       setForm({
         type: editingEvent.type || 'class',
         eventType: editingEvent.eventType || 'one-time',
+        program: editingEvent.program?._id || editingEvent.program || '',
+        branch: editingEvent.branch?._id || editingEvent.branch || '',
         subject: editingEvent.subject || '',
         title: editingEvent.title || '',
         classDescription: editingEvent.classDescription || '',
@@ -77,8 +89,8 @@ export default function CalendarEventFormModal({
         teachers: assignedTeacherIds,
         isOnline: Boolean(editingEvent.isOnline),
         location: editingEvent.location || '',
-        seatType: editingEvent.seatType || 'unlimited',
-        capacity: editingEvent.capacity || '',
+        seatType: editingEvent.seatType || 'limited',
+        capacity: editingEvent.capacity || '10',
         publishedStatus: editingEvent.publishedStatus || 'published',
       });
       setSelectedLead(editingEvent.lead || null);
@@ -206,19 +218,54 @@ export default function CalendarEventFormModal({
           {/* Section 1: Event Information */}
           <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/50 p-4">
             <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-tide-dark">
-              <BookOpen className="h-4 w-4" /> 1. Event Information
+              <BookOpen className="h-4 w-4" /> 1. Program & Event Type
             </h4>
 
-            <div className="grid grid-cols-2 gap-4">
-              {/* Subject */}
+            {/* Select Academy Program */}
+            {programsList.length > 0 && (
               <div>
-                <label className="label-field">Subject</label>
+                <label className="label-field">Link Academy Program (Optional)</label>
+                <select
+                  className="input-field font-semibold text-marine"
+                  value={form.program}
+                  onChange={(e) => {
+                    const progId = e.target.value;
+                    const picked = programsList.find((p) => String(p._id) === String(progId));
+                    if (picked) {
+                      setForm((prev) => ({
+                        ...prev,
+                        program: picked._id,
+                        title: prev.title && prev.title !== 'New Class' ? prev.title : picked.title,
+                        subject: picked.category || picked.title,
+                        capacity: String(picked.maxCapacity || 10),
+                        seatType: 'limited',
+                        classDescription: prev.classDescription || picked.description || '',
+                      }));
+                    } else {
+                      setForm((prev) => ({ ...prev, program: '' }));
+                    }
+                  }}
+                >
+                  <option value="">Custom / No Program Linked</option>
+                  {programsList.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.title} — {p.category} ({p.level || 'All Levels'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Subject / Category */}
+              <div>
+                <label className="label-field">Category / Subject</label>
                 <select
                   className="input-field"
                   value={form.subject}
                   onChange={(e) => setForm({ ...form, subject: e.target.value })}
                 >
-                  <option value="">Select Subject...</option>
+                  <option value="">Select Category...</option>
                   {allSubjectOptions.map((subj) => (
                     <option key={subj} value={subj}>{subj}</option>
                   ))}
