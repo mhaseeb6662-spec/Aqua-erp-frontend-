@@ -14,7 +14,9 @@ import CalendarWeekView from '../../components/crm/CalendarWeekView';
 import CalendarDayView from '../../components/crm/CalendarDayView';
 import CalendarListView from '../../components/crm/CalendarListView';
 import CalendarEventDetailPanel from '../../components/crm/CalendarEventDetailPanel';
+import SubjectManagementModal from '../../components/crm/SubjectManagementModal';
 import calendarService from '../../services/calendarService';
+import subjectService from '../../services/subjectService';
 import {
   CALENDAR_STATUS_STYLES,
   CALENDAR_TYPE_STYLES,
@@ -99,6 +101,7 @@ export default function CalendarPage() {
 
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [manageSubjectsOpen, setManageSubjectsOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [detailEvent, setDetailEvent] = useState(null);
@@ -362,6 +365,19 @@ export default function CalendarPage() {
               </button>
             ))}
           </div>
+
+          {/* Manage Subjects Button */}
+          {canCreate && (
+            <button
+              type="button"
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-marine shadow-xs transition"
+              onClick={() => setManageSubjectsOpen(true)}
+              title="Manage Subjects and Default Durations"
+            >
+              <BookOpen className="h-3.5 w-3.5 text-tide" />
+              Subjects
+            </button>
+          )}
 
           {/* Action Button: Add New Event */}
           {canCreate && (
@@ -677,6 +693,15 @@ export default function CalendarPage() {
         confirmLabel="Remove"
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      {/* Subject & Duration Management Modal */}
+      <SubjectManagementModal
+        open={manageSubjectsOpen}
+        onClose={() => setManageSubjectsOpen(false)}
+        onSubjectsChanged={() => {
+          calendarService.getSubjectOptions().then(({ data }) => setSubjects(data.data || [])).catch(() => {});
+        }}
       />
     </DashboardLayout>
   );
