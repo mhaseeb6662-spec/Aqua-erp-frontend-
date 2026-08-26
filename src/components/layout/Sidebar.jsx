@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, ShieldCheck, Waves, X, Anchor,
   Contact2, KanbanSquare, UserSquare2, Users2, BarChart3, Zap, CalendarDays,
   CreditCard, FileText, Banknote, Receipt, DollarSign, Wallet, GraduationCap, Ship, ShieldAlert, HardHat,
-  TrendingUp, Activity, Award, Building, Layers, Bell, UserCircle
+  TrendingUp, Activity, Award, Building, Layers, Bell, UserCircle, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import AcademyLogo from '../common/AcademyLogo';
@@ -95,7 +95,7 @@ const ADMIN_STAFF_SECTIONS = [
       { to: '/operations/dashboard', label: 'Operations Dashboard', icon: LayoutDashboard, permission: 'operations:dashboard:view' },
       { to: '/operations/fleet', label: 'Fleet Management', icon: Ship, permission: 'operations:fleet:view' },
       { to: '/operations/incidents', label: 'Incidents', icon: ShieldAlert, permission: 'operations:incidents:view' },
-      { to: '/operations/equipment', label: 'Equipment', icon: HardHat, permission: 'operations:equipment:view' },
+      { to: '/operations/equipment', label: 'Equipment & Inventory', icon: HardHat, permission: 'operations:equipment:view' },
     ],
   },
   {
@@ -130,7 +130,7 @@ const ADMIN_STAFF_SECTIONS = [
   },
 ];
 
-export default function Sidebar({ open, onClose }) {
+export default function Sidebar({ open, onClose, collapsed = false, onToggleCollapse }) {
   const { user, hasPermission } = useAuth();
   const roleSlug = user?.role?.slug;
 
@@ -151,45 +151,61 @@ export default function Sidebar({ open, onClose }) {
     portalBadge = 'Super Admin Command';
   }
 
+  const desktopWidthClass = collapsed ? 'lg:w-20' : 'lg:w-64';
+
   return (
     <>
-      {/* mobile overlay */}
+      {/* Mobile Backdrop */}
       {open && (
-        <div className="fixed inset-0 z-30 bg-marine-dark/40 backdrop-blur-sm lg:hidden" onClick={onClose} />
+        <div
+          className="fixed inset-0 z-40 bg-marine-dark/50 backdrop-blur-xs lg:hidden transition-opacity duration-300"
+          onClick={onClose}
+        />
       )}
 
+      {/* Main Sidebar Shell */}
       <aside
-        className={`fixed z-40 inset-y-0 left-0 w-64 transform bg-marine text-white transition-transform duration-200 lg:static lg:translate-x-0
-        ${open ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed z-50 inset-y-0 left-0 w-64 transform bg-marine text-white transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:shrink-0 lg:translate-x-0 ${desktopWidthClass} ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
       >
-        <div className="flex h-full flex-col">
-          {/* Brand */}
-          <div className="flex items-center justify-between px-4 py-5 border-b border-white/10">
-            <Link to="/dashboard" className="flex-1 pr-2">
-              <AcademyLogo variant="sidebar" />
+        <div className="flex h-full flex-col overflow-hidden">
+          {/* Brand Header */}
+          <div className={`flex items-center justify-between border-b border-white/10 ${collapsed ? 'px-3 py-4 justify-center' : 'px-4 py-5'}`}>
+            <Link to="/dashboard" className={`flex items-center ${collapsed ? 'justify-center' : 'flex-1 pr-2'}`}>
+              <AcademyLogo variant="sidebar" className={collapsed ? 'max-h-8 max-w-8' : ''} />
             </Link>
-            <button className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 lg:hidden transition" onClick={onClose}>
+            <button
+              className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 lg:hidden transition"
+              onClick={onClose}
+            >
               <X className="h-5 w-5" />
             </button>
           </div>
 
           {/* Role / Portal Context Badge */}
-          <div className="mx-4 mt-3 mb-3 px-3 py-1.5 rounded-lg bg-white/10 border border-white/15 flex items-center justify-between shadow-2xs">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-tide-light">{portalBadge}</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-          </div>
+          {!collapsed && (
+            <div className="mx-4 mt-3 mb-2 px-3 py-1.5 rounded-lg bg-white/10 border border-white/15 flex items-center justify-between shadow-2xs shrink-0">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-tide-light truncate">{portalBadge}</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0 ml-1"></span>
+            </div>
+          )}
 
-          {/* Nav */}
-          <nav className="flex-1 space-y-4 overflow-y-auto px-3">
+          {/* Navigation Links with custom scrollbar */}
+          <nav className={`flex-1 overflow-y-auto overflow-x-hidden space-y-4 py-3 ${collapsed ? 'px-2' : 'px-3'}`}>
             {activeSections.map((section) => {
               const items = section.items.filter((item) => !item.permission || hasPermission(item.permission));
               if (items.length === 0) return null;
+
               return (
                 <div key={section.title || 'main'}>
-                  {section.title && (
-                    <p className="mb-1.5 px-3.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-white/75">
+                  {section.title && !collapsed && (
+                    <p className="mb-1.5 px-3.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-white/70 truncate">
                       {section.title}
                     </p>
+                  )}
+                  {section.title && collapsed && (
+                    <div className="my-2 border-t border-white/10 mx-2" />
                   )}
                   <div className="space-y-1">
                     {items.map((item) => (
@@ -197,19 +213,35 @@ export default function Sidebar({ open, onClose }) {
                         key={item.to}
                         to={item.to}
                         onClick={onClose}
+                        title={collapsed ? item.label : undefined}
                         className={({ isActive }) =>
-                          `group relative flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors
-                          ${isActive ? 'bg-white/15 text-white font-bold shadow-xs' : 'text-slate-200 hover:bg-white/10 hover:text-white'}`
+                          `group relative flex items-center rounded-xl text-sm font-semibold transition-all duration-150 ${
+                            collapsed
+                              ? 'justify-center p-3'
+                              : 'gap-3 px-3.5 py-2.5'
+                          } ${
+                            isActive
+                              ? 'bg-white/15 text-white font-bold shadow-xs'
+                              : 'text-slate-200 hover:bg-white/10 hover:text-white'
+                          }`
                         }
                       >
                         {({ isActive }) => (
                           <>
-                            {/* hook-shaped active indicator */}
-                            {isActive && (
+                            {/* Active indicator */}
+                            {isActive && !collapsed && (
                               <span className="absolute -left-3 top-1/2 h-4 w-4 -translate-y-1/2 rounded-tr-full border-t-2 border-r-2 border-sandbar" />
                             )}
-                            <item.icon className="h-4.5 w-4.5" strokeWidth={2} />
-                            {item.label}
+                            <item.icon className="h-4.5 w-4.5 shrink-0" strokeWidth={2} />
+                            {!collapsed && (
+                              <span className="truncate">{item.label}</span>
+                            )}
+                            {/* Tooltip on collapsed hover */}
+                            {collapsed && (
+                              <div className="fixed left-20 ml-2 hidden rounded-md bg-marine-dark px-2.5 py-1 text-xs font-bold text-white shadow-lg group-hover:block z-50 whitespace-nowrap pointer-events-none border border-white/10">
+                                {item.label}
+                              </div>
+                            )}
                           </>
                         )}
                       </NavLink>
@@ -220,15 +252,37 @@ export default function Sidebar({ open, onClose }) {
             })}
           </nav>
 
-          {/* Footer */}
-          <div className="mx-3 mb-5 rounded-xl bg-white/5 p-3.5 border border-white/5">
-            <div className="flex items-center gap-2 text-tide-light">
-              <Waves className="h-4 w-4 animate-drift" />
-              <p className="text-xs font-bold uppercase tracking-wide">Aqua ERP 2.0</p>
-            </div>
-            <p className="mt-1 text-[10px] leading-relaxed text-slate-300">
-              Role-Isolated Portal Architecture
-            </p>
+          {/* Footer & Collapse Toggle Button */}
+          <div className="border-t border-white/10 p-3 shrink-0 bg-marine/95">
+            {/* Collapse toggle (Desktop only) */}
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              className={`hidden lg:flex w-full items-center rounded-xl p-2 text-xs font-bold text-white/75 hover:bg-white/10 hover:text-white transition ${
+                collapsed ? 'justify-center' : 'justify-between px-3'
+              }`}
+              title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+            >
+              {!collapsed && <span>Collapse Sidebar</span>}
+              {collapsed ? (
+                <ChevronRight className="h-4 w-4 text-tide-light" />
+              ) : (
+                <ChevronLeft className="h-4 w-4 text-tide-light" />
+              )}
+            </button>
+
+            {/* Version branding */}
+            {!collapsed && (
+              <div className="mt-2 rounded-xl bg-white/5 p-2.5 border border-white/5">
+                <div className="flex items-center gap-1.5 text-tide-light">
+                  <Waves className="h-3.5 w-3.5 animate-drift" />
+                  <p className="text-[11px] font-bold uppercase tracking-wide">Aqua ERP 2.0</p>
+                </div>
+                <p className="mt-0.5 text-[9px] leading-relaxed text-slate-300 truncate">
+                  Role-Isolated Architecture
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </aside>
