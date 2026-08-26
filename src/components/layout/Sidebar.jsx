@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, ShieldCheck, Waves, X, Anchor,
   Contact2, KanbanSquare, UserSquare2, Users2, BarChart3, Zap, CalendarDays,
   CreditCard, FileText, Banknote, Receipt, DollarSign, Wallet, GraduationCap, Ship, ShieldAlert, HardHat,
-  TrendingUp, Activity, Award, Building, Layers, Bell, UserCircle, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen
+  TrendingUp, Activity, Award, Building, Layers, Bell, UserCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import AcademyLogo from '../common/AcademyLogo';
@@ -130,7 +130,7 @@ const ADMIN_STAFF_SECTIONS = [
   },
 ];
 
-export default function Sidebar({ open, onClose, collapsed = false, onToggleCollapse }) {
+export default function Sidebar({ open, onClose }) {
   const { user, hasPermission } = useAuth();
   const roleSlug = user?.role?.slug;
 
@@ -151,61 +151,46 @@ export default function Sidebar({ open, onClose, collapsed = false, onToggleColl
     portalBadge = 'Super Admin Command';
   }
 
-  const desktopWidthClass = collapsed ? 'lg:w-20' : 'lg:w-64';
-
   return (
     <>
-      {/* Mobile Backdrop */}
+      {/* Mobile overlay */}
       {open && (
-        <div
-          className="fixed inset-0 z-40 bg-marine-dark/50 backdrop-blur-xs lg:hidden transition-opacity duration-300"
-          onClick={onClose}
-        />
+        <div className="fixed inset-0 z-40 bg-marine-dark/50 backdrop-blur-xs lg:hidden" onClick={onClose} />
       )}
 
-      {/* Main Sidebar Shell */}
+      {/* Sidebar Container */}
       <aside
-        className={`fixed z-50 inset-y-0 left-0 w-64 transform bg-marine text-white transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:shrink-0 lg:translate-x-0 ${desktopWidthClass} ${
-          open ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed z-50 inset-y-0 left-0 w-64 transform bg-marine text-white transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:shrink-0 lg:translate-x-0
+        ${open ? 'translate-x-0' : '-translate-x-full'}`}
       >
-        <div className="flex h-full flex-col overflow-hidden">
-          {/* Brand Header */}
-          <div className={`flex items-center justify-between border-b border-white/10 ${collapsed ? 'px-3 py-4 justify-center' : 'px-4 py-5'}`}>
-            <Link to="/dashboard" className={`flex items-center ${collapsed ? 'justify-center' : 'flex-1 pr-2'}`}>
-              <AcademyLogo variant="sidebar" className={collapsed ? 'max-h-8 max-w-8' : ''} />
+        <div className="flex h-full max-h-screen flex-col overflow-hidden">
+          {/* Top Brand Logo */}
+          <div className="flex items-center justify-between px-4 py-5 border-b border-white/10 shrink-0">
+            <Link to="/dashboard" className="flex-1 pr-2">
+              <AcademyLogo variant="sidebar" />
             </Link>
-            <button
-              className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 lg:hidden transition"
-              onClick={onClose}
-            >
+            <button className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 lg:hidden transition" onClick={onClose}>
               <X className="h-5 w-5" />
             </button>
           </div>
 
           {/* Role / Portal Context Badge */}
-          {!collapsed && (
-            <div className="mx-4 mt-3 mb-2 px-3 py-1.5 rounded-lg bg-white/10 border border-white/15 flex items-center justify-between shadow-2xs shrink-0">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-tide-light truncate">{portalBadge}</span>
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0 ml-1"></span>
-            </div>
-          )}
+          <div className="mx-4 mt-3 mb-3 px-3 py-1.5 rounded-lg bg-white/10 border border-white/15 flex items-center justify-between shadow-2xs shrink-0">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-tide-light">{portalBadge}</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          </div>
 
-          {/* Navigation Links with custom scrollbar */}
-          <nav className={`flex-1 overflow-y-auto overflow-x-hidden space-y-4 py-3 ${collapsed ? 'px-2' : 'px-3'}`}>
+          {/* Nav: Scrollable Navigation with min-h-0 and custom scrollbar */}
+          <nav className="flex-1 min-h-0 space-y-4 overflow-y-auto px-3 py-2 sidebar-scroll">
             {activeSections.map((section) => {
               const items = section.items.filter((item) => !item.permission || hasPermission(item.permission));
               if (items.length === 0) return null;
-
               return (
                 <div key={section.title || 'main'}>
-                  {section.title && !collapsed && (
-                    <p className="mb-1.5 px-3.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-white/70 truncate">
+                  {section.title && (
+                    <p className="mb-1.5 px-3.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-white/75">
                       {section.title}
                     </p>
-                  )}
-                  {section.title && collapsed && (
-                    <div className="my-2 border-t border-white/10 mx-2" />
                   )}
                   <div className="space-y-1">
                     {items.map((item) => (
@@ -213,35 +198,19 @@ export default function Sidebar({ open, onClose, collapsed = false, onToggleColl
                         key={item.to}
                         to={item.to}
                         onClick={onClose}
-                        title={collapsed ? item.label : undefined}
                         className={({ isActive }) =>
-                          `group relative flex items-center rounded-xl text-sm font-semibold transition-all duration-150 ${
-                            collapsed
-                              ? 'justify-center p-3'
-                              : 'gap-3 px-3.5 py-2.5'
-                          } ${
-                            isActive
-                              ? 'bg-white/15 text-white font-bold shadow-xs'
-                              : 'text-slate-200 hover:bg-white/10 hover:text-white'
-                          }`
+                          `group relative flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors
+                          ${isActive ? 'bg-white/15 text-white font-bold shadow-xs' : 'text-slate-200 hover:bg-white/10 hover:text-white'}`
                         }
                       >
                         {({ isActive }) => (
                           <>
-                            {/* Active indicator */}
-                            {isActive && !collapsed && (
+                            {/* Hook-shaped active indicator */}
+                            {isActive && (
                               <span className="absolute -left-3 top-1/2 h-4 w-4 -translate-y-1/2 rounded-tr-full border-t-2 border-r-2 border-sandbar" />
                             )}
-                            <item.icon className="h-4.5 w-4.5 shrink-0" strokeWidth={2} />
-                            {!collapsed && (
-                              <span className="truncate">{item.label}</span>
-                            )}
-                            {/* Tooltip on collapsed hover */}
-                            {collapsed && (
-                              <div className="fixed left-20 ml-2 hidden rounded-md bg-marine-dark px-2.5 py-1 text-xs font-bold text-white shadow-lg group-hover:block z-50 whitespace-nowrap pointer-events-none border border-white/10">
-                                {item.label}
-                              </div>
-                            )}
+                            <item.icon className="h-4.5 w-4.5" strokeWidth={2} />
+                            {item.label}
                           </>
                         )}
                       </NavLink>
@@ -252,41 +221,15 @@ export default function Sidebar({ open, onClose, collapsed = false, onToggleColl
             })}
           </nav>
 
-          {/* Footer: Collapse Control & Clean System Info */}
-          <div className="shrink-0 border-t border-white/10 px-3 py-3 bg-marine">
-            {/* Collapse toggle (Desktop only) */}
-            <button
-              type="button"
-              onClick={onToggleCollapse}
-              title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-              className={`hidden lg:flex w-full items-center rounded-lg text-sm font-medium transition-colors duration-150 text-slate-300 hover:bg-white/10 hover:text-white ${
-                collapsed ? 'justify-center p-2.5' : 'gap-3 px-3.5 py-2.5'
-              }`}
-            >
-              {collapsed ? (
-                <PanelLeftOpen className="h-4.5 w-4.5 text-tide-light shrink-0" strokeWidth={2} />
-              ) : (
-                <>
-                  <PanelLeftClose className="h-4.5 w-4.5 text-tide-light shrink-0" strokeWidth={2} />
-                  <span className="truncate">Collapse Sidebar</span>
-                </>
-              )}
-            </button>
-
-            {/* Subtle Brand / System Badge */}
-            {!collapsed ? (
-              <div className="mt-2.5 flex items-center justify-between px-3.5 pt-2.5 border-t border-white/10 text-[10px] text-white/50 font-medium">
-                <div className="flex items-center gap-1.5 text-tide-light">
-                  <Waves className="h-3.5 w-3.5 animate-drift" />
-                  <span className="font-bold text-white/80 tracking-wider uppercase text-[10px]">Aqua ERP 2.0</span>
-                </div>
-                <span className="text-[10px] text-slate-400 font-semibold">Enterprise</span>
-              </div>
-            ) : (
-              <div className="mt-2 flex justify-center text-tide-light/60" title="Aqua ERP 2.0">
-                <Waves className="h-3.5 w-3.5" />
-              </div>
-            )}
+          {/* Original Footer */}
+          <div className="mx-3 mb-5 mt-auto rounded-xl bg-white/5 p-3.5 border border-white/5 shrink-0">
+            <div className="flex items-center gap-2 text-tide-light">
+              <Waves className="h-4 w-4 animate-drift" />
+              <p className="text-xs font-bold uppercase tracking-wide">Aqua ERP 2.0</p>
+            </div>
+            <p className="mt-1 text-[10px] leading-relaxed text-slate-300">
+              Role-Isolated Portal Architecture
+            </p>
           </div>
         </div>
       </aside>
