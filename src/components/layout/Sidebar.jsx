@@ -252,35 +252,39 @@ export default function Sidebar({ open, onClose, collapsed = false, onToggleColl
             })}
           </nav>
 
-          {/* Footer & Collapse Toggle Button */}
-          <div className="border-t border-white/10 p-3 shrink-0 bg-marine/95">
+          {/* Footer: Collapse Control & Clean System Info */}
+          <div className="shrink-0 border-t border-white/10 px-3 py-3 bg-marine">
             {/* Collapse toggle (Desktop only) */}
             <button
               type="button"
               onClick={onToggleCollapse}
-              className={`hidden lg:flex w-full items-center rounded-xl p-2 text-xs font-bold text-white/75 hover:bg-white/10 hover:text-white transition ${
-                collapsed ? 'justify-center' : 'justify-between px-3'
-              }`}
               title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+              className={`hidden lg:flex w-full items-center rounded-lg text-sm font-medium transition-colors duration-150 text-slate-300 hover:bg-white/10 hover:text-white ${
+                collapsed ? 'justify-center p-2.5' : 'gap-3 px-3.5 py-2.5'
+              }`}
             >
-              {!collapsed && <span>Collapse Sidebar</span>}
               {collapsed ? (
-                <ChevronRight className="h-4 w-4 text-tide-light" />
+                <PanelLeftOpen className="h-4.5 w-4.5 text-tide-light shrink-0" strokeWidth={2} />
               ) : (
-                <ChevronLeft className="h-4 w-4 text-tide-light" />
+                <>
+                  <PanelLeftClose className="h-4.5 w-4.5 text-tide-light shrink-0" strokeWidth={2} />
+                  <span className="truncate">Collapse Sidebar</span>
+                </>
               )}
             </button>
 
-            {/* Version branding */}
-            {!collapsed && (
-              <div className="mt-2 rounded-xl bg-white/5 p-2.5 border border-white/5">
+            {/* Subtle Brand / System Badge */}
+            {!collapsed ? (
+              <div className="mt-2.5 flex items-center justify-between px-3.5 pt-2.5 border-t border-white/10 text-[10px] text-white/50 font-medium">
                 <div className="flex items-center gap-1.5 text-tide-light">
                   <Waves className="h-3.5 w-3.5 animate-drift" />
-                  <p className="text-[11px] font-bold uppercase tracking-wide">Aqua ERP 2.0</p>
+                  <span className="font-bold text-white/80 tracking-wider uppercase text-[10px]">Aqua ERP 2.0</span>
                 </div>
-                <p className="mt-0.5 text-[9px] leading-relaxed text-slate-300 truncate">
-                  Role-Isolated Architecture
-                </p>
+                <span className="text-[10px] text-slate-400 font-semibold">Enterprise</span>
+              </div>
+            ) : (
+              <div className="mt-2 flex justify-center text-tide-light/60" title="Aqua ERP 2.0">
+                <Waves className="h-3.5 w-3.5" />
               </div>
             )}
           </div>
