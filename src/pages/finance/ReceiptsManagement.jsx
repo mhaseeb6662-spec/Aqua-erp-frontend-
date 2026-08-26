@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import financeService from '../../services/financeService';
 import toast from 'react-hot-toast';
+import { formatAED } from '../../utils/currency';
 import { FileCheck, Printer, Search, Download, CheckCircle2, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import AcademyLogo from '../../components/common/AcademyLogo';
@@ -78,7 +79,7 @@ export default function ReceiptsManagement() {
                       <td className="px-6 py-4 font-mono font-bold text-tide">{r.receiptNumber}</td>
                       <td className="px-6 py-4 font-mono text-slate-600">{r.invoice?.invoiceNumber || 'Direct'}</td>
                       <td className="px-6 py-4 font-semibold text-slate-700">{r.customer?.fullName}</td>
-                      <td className="px-6 py-4 font-bold text-emerald-600">${r.amountPaid} USD</td>
+                      <td className="px-6 py-4 font-bold text-emerald-600">{formatAED(r.amountPaid)}</td>
                       <td className="px-6 py-4 text-slate-600">{r.paymentMethod}</td>
                       <td className="px-6 py-4 text-slate-400">{new Date(r.issuedAt).toLocaleDateString()}</td>
                       <td className="px-6 py-4 text-right">
@@ -147,7 +148,7 @@ export default function ReceiptsManagement() {
                   </div>
                   <div className="flex justify-between items-center bg-emerald-50 p-3 rounded-xl border border-emerald-100 mt-4">
                     <span className="text-emerald-800 font-bold">Total Amount Paid:</span>
-                    <span className="font-display text-xl font-bold text-emerald-700">${selectedReceipt.amountPaid} USD</span>
+                    <span className="font-display text-xl font-bold text-emerald-700">{formatAED(selectedReceipt.amountPaid)}</span>
                   </div>
                 </div>
 

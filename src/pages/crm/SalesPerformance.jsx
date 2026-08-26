@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Loader from '../../components/common/Loader';
 import salesPerformanceService from '../../services/salesPerformanceService';
+import { formatAED } from '../../utils/currency';
 import { PIPELINE_STAGES, STAGE_STYLES } from '../../constants/crm';
 
 const BAR_COLORS = ['bg-tide', 'bg-sandbar', 'bg-marine', 'bg-tide-light', 'bg-sandbar-dark', 'bg-coral'];
@@ -93,7 +94,7 @@ export default function SalesPerformance() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Revenue closed</p>
                 <p className="mt-0.5 text-2xl font-bold text-marine">
-                  {overview?.revenue != null ? `Rs. ${Number(overview.revenue).toLocaleString()}` : '—'}
+                  {overview?.revenue != null ? formatAED(overview.revenue) : '—'}
                 </p>
               </div>
             </div>
@@ -102,7 +103,7 @@ export default function SalesPerformance() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Avg. deal size</p>
                 <p className="mt-0.5 text-2xl font-bold text-marine">
-                  {overview?.avgDealSize != null ? `Rs. ${Number(overview.avgDealSize).toLocaleString()}` : '—'}
+                  {overview?.avgDealSize != null ? formatAED(overview.avgDealSize) : '—'}
                 </p>
               </div>
             </div>
@@ -121,7 +122,7 @@ export default function SalesPerformance() {
                     value={r.revenue}
                     max={maxRepRevenue}
                     colorClass={BAR_COLORS[i % BAR_COLORS.length]}
-                    suffix=" Rs."
+                    suffix=" AED"
                   />
                 ))}
               </div>

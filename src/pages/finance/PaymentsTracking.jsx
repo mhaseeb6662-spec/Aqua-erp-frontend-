@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import financeService from '../../services/financeService';
 import toast from 'react-hot-toast';
+import { formatAED } from '../../utils/currency';
 import { CreditCard, Search, Filter, CheckCircle2, RefreshCw, FileText, ArrowDownLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -103,7 +104,7 @@ export default function PaymentsTracking() {
                       <td className="px-6 py-4 font-mono text-slate-600">{pay.invoice?.invoiceNumber || 'Direct'}</td>
                       <td className="px-6 py-4 font-semibold text-slate-700">{pay.customer?.fullName || 'User'}</td>
                       <td className="px-6 py-4 text-slate-600">{pay.paymentMethod}</td>
-                      <td className="px-6 py-4 font-bold text-marine">${pay.amount} USD</td>
+                      <td className="px-6 py-4 font-bold text-marine">{formatAED(pay.amount)}</td>
                       <td className="px-6 py-4 text-slate-400">{new Date(pay.paidAt).toLocaleString()}</td>
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">

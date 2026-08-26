@@ -6,6 +6,7 @@ import {
   CalendarDays, Clock, MapPin, CheckCircle2, XCircle, AlertCircle, Plus, Search, Filter, BookOpen, DollarSign
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { formatAED } from '../../utils/currency';
 
 export default function BookingsPage() {
   const { user } = useAuth();
@@ -147,7 +148,7 @@ export default function BookingsPage() {
                     <span className="text-xs text-slate-400">Payment Status: </span>
                     <span className="text-xs font-bold text-marine">{b.paymentStatus}</span>
                     <p className="font-display text-sm font-bold text-tide">
-                      {b.amount === 0 ? 'FREE (Trial)' : `$${b.amount} USD`}
+                      {b.amount === 0 ? 'FREE (Trial)' : formatAED(b.amount)}
                     </p>
                   </div>
 

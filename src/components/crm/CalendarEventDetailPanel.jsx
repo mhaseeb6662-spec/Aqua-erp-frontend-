@@ -269,11 +269,11 @@ export default function CalendarEventDetailPanel({
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
                   <div className="rounded-lg bg-slate-50 p-1.5 border border-slate-100">
                     <p className="text-[10px] font-semibold text-slate-500 uppercase">Collected</p>
-                    <p className="font-extrabold text-emerald-700 font-mono">${event.financialSummary.totalCollected?.toLocaleString() || 0}</p>
+                    <p className="font-extrabold text-emerald-700 font-mono">AED {event.financialSummary.totalCollected?.toLocaleString() || 0}</p>
                   </div>
                   <div className="rounded-lg bg-slate-50 p-1.5 border border-slate-100">
                     <p className="text-[10px] font-semibold text-slate-500 uppercase">Outstanding</p>
-                    <p className="font-extrabold text-rose-700 font-mono">${event.financialSummary.totalOutstanding?.toLocaleString() || 0}</p>
+                    <p className="font-extrabold text-rose-700 font-mono">AED {event.financialSummary.totalOutstanding?.toLocaleString() || 0}</p>
                   </div>
                   <div className="rounded-lg bg-slate-50 p-1.5 border border-slate-100">
                     <p className="text-[10px] font-semibold text-slate-500 uppercase">Status</p>

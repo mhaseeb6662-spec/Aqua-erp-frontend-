@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import financeService from '../../services/financeService';
 import toast from 'react-hot-toast';
+import { formatAED } from '../../utils/currency';
 import { AlertCircle, Send, DollarSign, Clock, CheckCircle2, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -67,7 +68,7 @@ export default function OutstandingPayments() {
             </span>
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-amber-700">Total Uncollected Receivables</p>
-              <h2 className="font-display text-2xl font-bold text-marine">${totalOutstanding.toLocaleString()} USD</h2>
+              <h2 className="font-display text-2xl font-bold text-marine">{formatAED(totalOutstanding)}</h2>
             </div>
           </div>
           <span className="text-xs font-semibold text-amber-800 bg-amber-200/50 px-3 py-1.5 rounded-lg">
@@ -106,8 +107,8 @@ export default function OutstandingPayments() {
                     <tr key={inv._id} className="hover:bg-slate-50/50">
                       <td className="px-6 py-4 font-mono font-bold text-marine">{inv.invoiceNumber}</td>
                       <td className="px-6 py-4 font-semibold text-slate-700">{inv.customer?.fullName}</td>
-                      <td className="px-6 py-4 text-slate-600">${inv.totalAmount} USD</td>
-                      <td className="px-6 py-4 font-bold text-amber-600">${inv.balanceDue} USD</td>
+                      <td className="px-6 py-4 text-slate-600">{formatAED(inv.totalAmount)}</td>
+                      <td className="px-6 py-4 font-bold text-amber-600">{formatAED(inv.balanceDue)}</td>
                       <td className="px-6 py-4 text-slate-500">{new Date(inv.dueDate).toLocaleDateString()}</td>
                       <td className="px-6 py-4">
                         <span

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { formatAED } from '../../utils/currency';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import financeService from '../../services/financeService';
 import toast from 'react-hot-toast';
@@ -30,7 +31,7 @@ export default function FinancialReports() {
     if (!metrics) return;
     const csvContent =
       "data:text/csv;charset=utf-8," +
-      ["Month,Revenue,Expenses,Net"]
+      ["Month,Gross Revenue (AED),Operating Costs (AED),Net Income (AED)"]
         .concat(metrics.monthlyTrend.map((m) => `${m.month},${m.revenue},${m.expenses},${m.revenue - m.expenses}`))
         .join("\n");
     const encodedUri = encodeURI(csvContent);
@@ -100,9 +101,9 @@ export default function FinancialReports() {
                       return (
                         <tr key={row.month} className="hover:bg-slate-50/50">
                           <td className="px-6 py-4 font-semibold text-marine">{row.month} 2026</td>
-                          <td className="px-6 py-4 font-bold text-emerald-600">${row.revenue.toLocaleString()} USD</td>
-                          <td className="px-6 py-4 text-slate-500">${row.expenses.toLocaleString()} USD</td>
-                          <td className="px-6 py-4 font-bold text-tide">${net.toLocaleString()} USD</td>
+                          <td className="px-6 py-4 font-bold text-emerald-600">{formatAED(row.revenue)}</td>
+                          <td className="px-6 py-4 text-slate-500">{formatAED(row.expenses)}</td>
+                          <td className="px-6 py-4 font-bold text-tide">{formatAED(net)}</td>
                           <td className="px-6 py-4 font-semibold text-emerald-600">+{margin}%</td>
                         </tr>
                       );

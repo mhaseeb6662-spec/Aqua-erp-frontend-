@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { formatAED } from '../../utils/currency';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import financeService from '../../services/financeService';
 import toast from 'react-hot-toast';
@@ -59,7 +60,7 @@ export default function FinanceDashboard() {
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Net Revenue</p>
                   <p className="mt-1 font-display text-2xl font-bold text-marine">
-                    ${metrics?.totalRevenue?.toLocaleString() || 0} USD
+                    {formatAED(metrics?.totalRevenue)}
                   </p>
                   <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
                     <ArrowUpRight className="h-3.5 w-3.5" /> +14.8% vs last month
@@ -74,7 +75,7 @@ export default function FinanceDashboard() {
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Outstanding Receivables</p>
                   <p className="mt-1 font-display text-2xl font-bold text-amber-600">
-                    ${metrics?.outstandingReceivables?.toLocaleString() || 0} USD
+                    {formatAED(metrics?.outstandingReceivables)}
                   </p>
                   <span className="mt-1 text-xs text-slate-400">{metrics?.overdueCount || 0} Overdue Invoices</span>
                 </div>
@@ -87,7 +88,7 @@ export default function FinanceDashboard() {
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Monthly Recurring (MRR)</p>
                   <p className="mt-1 font-display text-2xl font-bold text-tide">
-                    ${metrics?.mrr?.toLocaleString() || 0} USD
+                    {formatAED(metrics?.mrr)}
                   </p>
                   <span className="mt-1 text-xs text-slate-400">Active Memberships</span>
                 </div>
@@ -127,7 +128,7 @@ export default function FinanceDashboard() {
                     return (
                       <div key={item.month} className="flex-1 flex flex-col items-center gap-2 group">
                         <div className="text-[10px] font-bold text-marine opacity-0 group-hover:opacity-100 transition">
-                          ${item.revenue}
+                          AED {item.revenue?.toLocaleString()}
                         </div>
                         <div className="w-full bg-slate-100 rounded-t-lg relative flex items-end h-48 overflow-hidden">
                           <div
@@ -153,7 +154,7 @@ export default function FinanceDashboard() {
                     <div key={cat.name} className="space-y-1.5">
                       <div className="flex items-center justify-between text-xs font-semibold">
                         <span className="text-slate-700">{cat.name}</span>
-                        <span className="text-marine">${cat.amount} ({cat.percentage}%)</span>
+                        <span className="text-marine">AED {cat.amount?.toLocaleString()} ({cat.percentage}%)</span>
                       </div>
                       <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
                         <div

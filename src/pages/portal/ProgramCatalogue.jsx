@@ -3,6 +3,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import portalService from '../../services/portalService';
 import financeService from '../../services/financeService';
 import toast from 'react-hot-toast';
+import { formatAED } from '../../utils/currency';
 import {
   BookOpen, Search, Filter, Compass, Award, Users, DollarSign, Calendar, MapPin, CheckCircle2, Plus, X, ArrowRight, Star, CreditCard, FileText, CheckCircle, ShieldCheck, Download, Receipt
 } from 'lucide-react';
@@ -304,7 +305,7 @@ export default function ProgramCatalogue() {
                     </div>
                     <div className="flex items-center gap-1.5 font-semibold text-marine">
                       <DollarSign className="h-4 w-4 text-tide" />
-                      <span>${prog.price} USD</span>
+                      <span>{formatAED(prog.price)}</span>
                     </div>
                   </div>
 
@@ -346,7 +347,7 @@ export default function ProgramCatalogue() {
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-tide">Blueprint 7-Step Journey</span>
                   <h2 className="font-display text-lg font-bold text-marine">Book {selectedProgram.title}</h2>
-                  <p className="text-xs text-slate-500">${selectedProgram.price} USD | {selectedProgram.category}</p>
+                  <p className="text-xs text-slate-500">{formatAED(selectedProgram.price)} | {selectedProgram.category}</p>
                 </div>
                 <button onClick={() => setShowBookingModal(false)} className="text-slate-400 hover:text-slate-600">
                   <X className="h-5 w-5" />
@@ -424,7 +425,7 @@ export default function ProgramCatalogue() {
                         onChange={(e) => setBookingType(e.target.value)}
                         className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
                       >
-                        <option value="Standard Class">Standard Class (${selectedProgram.price})</option>
+                        <option value="Standard Class">Standard Class (AED {selectedProgram.price})</option>
                         <option value="Trial Session">Trial Session (FREE)</option>
                         <option value="Workshop">Workshop</option>
                         <option value="Private Coaching">Private Coaching</option>
@@ -434,7 +435,7 @@ export default function ProgramCatalogue() {
                     <div>
                       <label className="block text-xs font-semibold text-slate-700">Total Price</label>
                       <div className="mt-1 rounded-xl bg-slate-100 p-2.5 text-sm font-bold text-marine">
-                        {bookingType === 'Trial Session' ? 'FREE (Trial)' : `$${selectedProgram.price} USD`}
+                        {bookingType === 'Trial Session' ? 'FREE (Trial)' : formatAED(selectedProgram.price)}
                       </div>
                     </div>
                   </div>
@@ -507,15 +508,15 @@ export default function ProgramCatalogue() {
                     <div className="rounded-xl bg-white p-3 border border-slate-100 text-xs space-y-1.5">
                       <div className="flex justify-between text-slate-600">
                         <span>Course Fee:</span>
-                        <span>${generatedInvoice.subtotal} USD</span>
+                        <span>{formatAED(generatedInvoice.subtotal)}</span>
                       </div>
                       <div className="flex justify-between text-slate-600">
                         <span>Academy Tax (5%):</span>
-                        <span>${generatedInvoice.taxAmount} USD</span>
+                        <span>{formatAED(generatedInvoice.taxAmount)}</span>
                       </div>
                       <div className="flex justify-between font-bold text-marine text-sm pt-1 border-t border-slate-100">
                         <span>Total Due:</span>
-                        <span className="text-tide">${generatedInvoice.totalAmount} USD</span>
+                        <span className="text-tide">{formatAED(generatedInvoice.totalAmount)}</span>
                       </div>
                     </div>
                   </div>
@@ -595,7 +596,7 @@ export default function ProgramCatalogue() {
                         className="rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-1.5"
                       >
                         <ShieldCheck className="h-4 w-4" />
-                        {isSubmitting ? 'Processing Payment...' : `Pay Now ($${generatedInvoice.totalAmount} USD)`}
+                        {isSubmitting ? 'Processing Payment...' : `Pay Now (${formatAED(generatedInvoice.totalAmount)})`}
                       </button>
                     </div>
                   </form>
@@ -649,7 +650,7 @@ export default function ProgramCatalogue() {
                         </div>
                         <div className="flex justify-between items-center bg-emerald-50 p-2.5 rounded-xl border border-emerald-100 mt-2">
                           <span className="text-emerald-800 font-bold">Total Paid:</span>
-                          <span className="font-display text-base font-bold text-emerald-700">${generatedInvoice.totalAmount} USD</span>
+                          <span className="font-display text-base font-bold text-emerald-700">{formatAED(generatedInvoice.totalAmount)}</span>
                         </div>
                       </div>
                     </div>
@@ -753,7 +754,7 @@ export default function ProgramCatalogue() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700">Price (USD) *</label>
+                    <label className="block text-xs font-semibold text-slate-700">Price (AED) *</label>
                     <input
                       type="number"
                       required

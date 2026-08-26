@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import financeService from '../../services/financeService';
 import toast from 'react-hot-toast';
+import { formatAED } from '../../utils/currency';
 import { RefreshCw, ArrowUpRight, Search, Plus, X, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -111,7 +112,7 @@ export default function RefundsManagement() {
                       <td className="px-6 py-4 font-mono font-bold text-rose-600">{ref.refundId}</td>
                       <td className="px-6 py-4 font-mono text-slate-600">{ref.payment?.transactionId}</td>
                       <td className="px-6 py-4 font-semibold text-slate-700">{ref.customer?.fullName || 'User'}</td>
-                      <td className="px-6 py-4 font-bold text-rose-600">-${ref.amount} USD</td>
+                      <td className="px-6 py-4 font-bold text-rose-600">-{formatAED(ref.amount)}</td>
                       <td className="px-6 py-4 text-xs text-slate-500 max-w-xs truncate">{ref.reason}</td>
                       <td className="px-6 py-4 text-slate-400">{new Date(ref.createdAt).toLocaleDateString()}</td>
                       <td className="px-6 py-4">
@@ -150,7 +151,7 @@ export default function RefundsManagement() {
                     <option value="">Select Transaction</option>
                     {payments.map((p) => (
                       <option key={p._id} value={p._id}>
-                        {p.transactionId} - ${p.amount} USD ({p.customer?.fullName})
+                        {p.transactionId} - AED {p.amount} ({p.customer?.fullName})
                       </option>
                     ))}
                   </select>

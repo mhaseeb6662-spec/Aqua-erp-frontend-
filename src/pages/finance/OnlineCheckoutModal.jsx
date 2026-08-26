@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { formatAED } from '../../utils/currency';
 import { X, CreditCard, Lock, CheckCircle2, ShieldCheck, DollarSign } from 'lucide-react';
 import financeService from '../../services/financeService';
 import toast from 'react-hot-toast';
@@ -47,7 +48,7 @@ export default function OnlineCheckoutModal({ invoice, onClose, onSuccess }) {
         <div className="mt-4 rounded-xl bg-slate-50 p-4 border border-slate-100 flex items-center justify-between">
           <div>
             <p className="text-xs text-slate-500">Balance Due Amount</p>
-            <p className="font-display text-2xl font-bold text-marine">${invoice.balanceDue} USD</p>
+            <p className="font-display text-2xl font-bold text-marine">{formatAED(invoice.balanceDue)}</p>
           </div>
           <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
             <Lock className="h-3.5 w-3.5" /> 256-Bit Encrypted
@@ -143,7 +144,7 @@ export default function OnlineCheckoutModal({ invoice, onClose, onSuccess }) {
                 disabled={isProcessing}
                 className="inline-flex items-center gap-2 rounded-xl bg-tide px-5 py-2 text-sm font-bold text-white hover:bg-tide-dark disabled:opacity-50"
               >
-                {isProcessing ? 'Processing Payment...' : `Pay $${invoice.balanceDue} USD`}
+                {isProcessing ? 'Processing Payment...' : `Pay Now (${formatAED(invoice.balanceDue)})`}
               </button>
             </div>
           </div>

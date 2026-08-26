@@ -5,6 +5,7 @@ import userService from '../../services/userService';
 import portalService from '../../services/portalService';
 import OnlineCheckoutModal from './OnlineCheckoutModal';
 import toast from 'react-hot-toast';
+import { formatAED } from '../../utils/currency';
 import {
   FileText, Plus, Search, Filter, Printer, Send, CreditCard, DollarSign, CheckCircle2, AlertCircle, Clock, X
 } from 'lucide-react';
@@ -244,8 +245,8 @@ export default function Invoices() {
                       <td className="px-6 py-4 font-semibold text-slate-700">{inv.customer?.fullName || 'Customer'}</td>
                       <td className="px-6 py-4 text-slate-500">{new Date(inv.issuedDate).toLocaleDateString()}</td>
                       <td className="px-6 py-4 text-slate-500">{new Date(inv.dueDate).toLocaleDateString()}</td>
-                      <td className="px-6 py-4 font-bold text-marine">${inv.totalAmount} USD</td>
-                      <td className="px-6 py-4 font-bold text-amber-600">${inv.balanceDue} USD</td>
+                      <td className="px-6 py-4 font-bold text-marine">{formatAED(inv.totalAmount)}</td>
+                      <td className="px-6 py-4 font-bold text-amber-600">{formatAED(inv.balanceDue)}</td>
                       <td className="px-6 py-4">
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
@@ -393,10 +394,10 @@ export default function Invoices() {
                         <tr key={idx} className="text-slate-800 font-medium">
                           <td className="py-3 pr-4">{item.description}</td>
                           <td className="py-3 text-center">{item.quantity}</td>
-                          <td className="py-3 text-right">${item.unitPrice}</td>
-                          <td className="py-3 text-right">${selectedInvoice.discount || 0}</td>
+                          <td className="py-3 text-right">{formatAED(item.unitPrice)}</td>
+                          <td className="py-3 text-right">{formatAED(selectedInvoice.discount || 0)}</td>
                           <td className="py-3 text-right">{selectedInvoice.taxRate || 5}%</td>
-                          <td className="py-3 text-right font-bold">${item.amount}</td>
+                          <td className="py-3 text-right font-bold">{formatAED(item.amount)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -408,7 +409,7 @@ export default function Invoices() {
                   <div className="w-72 space-y-2 text-xs font-medium">
                     <div className="flex justify-between text-slate-600">
                       <span>Subtotal:</span>
-                      <span className="font-bold text-slate-900">${selectedInvoice.subtotal}</span>
+                      <span className="font-bold text-slate-900">{formatAED(selectedInvoice.subtotal)}</span>
                     </div>
                     {selectedInvoice.discount > 0 && (
                       <div className="flex justify-between text-emerald-600">
@@ -418,15 +419,15 @@ export default function Invoices() {
                     )}
                     <div className="flex justify-between text-slate-600">
                       <span>Tax ({selectedInvoice.taxRate}%):</span>
-                      <span className="font-bold text-slate-900">${selectedInvoice.taxAmount}</span>
+                      <span className="font-bold text-slate-900">{formatAED(selectedInvoice.taxAmount)}</span>
                     </div>
                     <div className="flex justify-between text-sm font-bold text-slate-900 border-t border-slate-300 pt-2">
                       <span>Total Amount:</span>
-                      <span>${selectedInvoice.totalAmount} USD</span>
+                      <span>{formatAED(selectedInvoice.totalAmount)}</span>
                     </div>
                     <div className="flex justify-between text-xs font-bold text-amber-600">
                       <span>Balance Due:</span>
-                      <span>${selectedInvoice.balanceDue} USD</span>
+                      <span>{formatAED(selectedInvoice.balanceDue)}</span>
                     </div>
                   </div>
                 </div>
@@ -480,7 +481,7 @@ export default function Invoices() {
                       <option value="">Select Program</option>
                       {programs.map((p) => (
                         <option key={p._id} value={p._id}>
-                          {p.title} (${p.price})
+                          {p.title} (AED {p.price})
                         </option>
                       ))}
                     </select>
