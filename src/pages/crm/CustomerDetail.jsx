@@ -88,6 +88,60 @@ export default function CustomerDetail() {
             </div>
           </div>
 
+          {/* Student Profile & Registration Card */}
+          <div className="card space-y-3">
+            <h3 className="text-sm font-semibold text-marine border-b border-slate-100 pb-2">Student &amp; Parent Details</h3>
+            
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-medium">Date of Birth:</span>
+                <span className="font-semibold text-slate-800">
+                  {customer.dateOfBirth ? new Date(customer.dateOfBirth).toLocaleDateString() : '—'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-medium">Gender:</span>
+                <span className="font-semibold text-slate-800">{customer.gender || '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-medium">Nationality:</span>
+                <span className="font-semibold text-slate-800">{customer.nationality || '—'}</span>
+              </div>
+              {customer.streetAddress && (
+                <div className="flex justify-between">
+                  <span className="text-slate-400 font-medium">Address:</span>
+                  <span className="font-semibold text-slate-800 text-right">{customer.streetAddress}, {customer.city}</span>
+                </div>
+              )}
+              
+              <div className="pt-2 border-t border-slate-100">
+                <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Parent / Guardian</p>
+                <p className="font-bold text-slate-800">{customer.parentFullName || '—'}</p>
+                {customer.parentRelationship && (
+                  <span className="inline-block rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 mt-0.5">
+                    {customer.parentRelationship}
+                  </span>
+                )}
+                {customer.parentPhone && <p className="text-slate-600 mt-1">{customer.parentPhone}</p>}
+                {customer.parentEmail && <p className="text-slate-500">{customer.parentEmail}</p>}
+              </div>
+
+              {customer.hasBehaviouralNeeds && (
+                <div className="rounded-lg bg-amber-50 p-2.5 border border-amber-200 text-amber-900 mt-2">
+                  <p className="font-bold text-[11px]">Behavioural / Attention Needs</p>
+                  <p className="text-[10px] mt-0.5">{customer.behaviouralNeedsDetails}</p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-slate-400">Media Consent:</span>
+                <span className={`font-bold ${customer.socialMediaConsent !== false ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {customer.socialMediaConsent !== false ? 'Granted (Yes)' : 'Withheld (No)'}
+                </span>
+              </div>
+            </div>
+          </div>
+
           <div className="card">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="flex items-center gap-2 text-sm font-semibold text-marine">
