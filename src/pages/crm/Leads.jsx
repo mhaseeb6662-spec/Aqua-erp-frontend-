@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, UserCheck, ChevronLeft, ChevronRight, Sparkles, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, UserCheck, ChevronLeft, ChevronRight, Sparkles, ArrowUpDown, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Loader from '../../components/common/Loader';
@@ -10,6 +10,7 @@ import SourceBadge from '../../components/crm/SourceBadge';
 import LeadFormModal from '../../components/crm/LeadFormModal';
 import AssignLeadModal from '../../components/crm/AssignLeadModal';
 import ConvertLeadModal from '../../components/crm/ConvertLeadModal';
+import LeadImportModal from '../../components/crm/LeadImportModal';
 import leadService from '../../services/leadService';
 import salesTeamService from '../../services/salesTeamService';
 import { LEAD_SOURCES, PIPELINE_STAGES } from '../../constants/crm';
@@ -28,6 +29,7 @@ export default function Leads() {
   const [meta, setMeta] = useState({ totalPages: 1, total: 0 });
 
   const [formOpen, setFormOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [assignTarget, setAssignTarget] = useState(null);
@@ -136,10 +138,23 @@ export default function Leads() {
         </div>
 
         {hasPermission('crm:leads:create') && (
-          <button className="btn-primary" onClick={() => { setEditingLead(null); setFormOpen(true); }}>
-            <Plus className="h-4 w-4" />
-            Capture lead
-          </button>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              className="btn-secondary"
+              onClick={() => setImportOpen(true)}
+              title="Import Leads from CSV"
+            >
+              <Upload className="h-4 w-4 text-tide" />
+              Import CSV
+            </button>
+            <button
+              className="btn-primary"
+              onClick={() => { setEditingLead(null); setFormOpen(true); }}
+            >
+              <Plus className="h-4 w-4" />
+              Capture lead
+            </button>
+          </div>
         )}
       </div>
 
@@ -272,6 +287,12 @@ export default function Leads() {
         confirmLabel="Delete lead"
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <LeadImportModal
+        isOpen={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImportComplete={loadLeads}
       />
     </DashboardLayout>
   );

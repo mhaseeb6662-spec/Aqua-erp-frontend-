@@ -17,6 +17,13 @@ const leadService = {
 
   // Lead conversion
   convertLead: (id, payload) => api.post(`/leads/${id}/convert`, payload),
+
+  // CSV Import & Validation
+  validateLeadCsv: (payload) => api.post('/leads/import/validate', payload),
+  executeLeadImport: (payload) => api.post('/leads/import/execute', payload),
+  getImportBatches: (params) => api.get('/leads/import/batches', { params }),
+  getImportBatch: (id) => api.get(`/leads/import/batches/${id}`),
+  downloadCsvTemplate: () => api.get('/leads/import/template', { responseType: 'blob' }),
 };
 
 export default leadService;
