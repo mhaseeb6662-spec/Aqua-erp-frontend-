@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Search, ArrowUpDown, Plus } from 'lucide-react';
+import { Search, ArrowUpDown, Plus, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Loader from '../../components/common/Loader';
 import LeadCard from '../../components/crm/LeadCard';
 import LeadFormModal from '../../components/crm/LeadFormModal';
+import LeadImportModal from '../../components/crm/LeadImportModal';
 import leadService from '../../services/leadService';
 import salesTeamService from '../../services/salesTeamService';
 import { PIPELINE_STAGES, STAGE_STYLES, LEAD_SOURCES } from '../../constants/crm';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Pipeline() {
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
   const [leads, setLeads] = useState([]);
   const [salesTeam, setSalesTeam] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,6 +21,7 @@ export default function Pipeline() {
   const [dateSort, setDateSort] = useState('newest'); // 'newest' | 'oldest' | 'recent_update' | 'least_recent_update'
   const [dragOverStage, setDragOverStage] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const canUpdateStage = hasPermission('crm:pipeline:update');
 
   const load = useCallback(async () => {
@@ -151,11 +153,26 @@ export default function Pipeline() {
           </div>
         </div>
 
-        {hasPermission('crm:leads:create') && (
-          <button className="btn-primary" onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Capture lead
-          </button>
+        {(hasPermission('crm:leads:create') || hasPermission('crm:leads:import') || hasPermission('crm:leads:view') || user?.role?.slug === 'super-admin' || user?.role?.slug === 'admin') && (
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setImportOpen(true)}
+              title="Import Leads from CSV"
+            >
+              <Upload className="h-4 w-4 text-tide" />
+              Import CSV
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => setFormOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Capture lead
+            </button>
+          </div>
         )}
       </div>
 
@@ -208,6 +225,13 @@ export default function Pipeline() {
         onSaved={() => { setFormOpen(false); load(); }}
         salesTeam={salesTeam}
         editingLead={null}
+      />
+
+      {/* CSV Lead Import Wizard */}
+      <LeadImportModal
+        isOpen={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImportComplete={load}
       />
     </DashboardLayout>
   );

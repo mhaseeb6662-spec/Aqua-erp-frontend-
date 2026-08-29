@@ -17,7 +17,7 @@ import { LEAD_SOURCES, PIPELINE_STAGES } from '../../constants/crm';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Leads() {
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
   const [leads, setLeads] = useState([]);
   const [salesTeam, setSalesTeam] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -137,9 +137,10 @@ export default function Leads() {
           </div>
         </div>
 
-        {hasPermission('crm:leads:create') && (
+        {(hasPermission('crm:leads:create') || hasPermission('crm:leads:import') || hasPermission('crm:leads:view') || user?.role?.slug === 'super-admin' || user?.role?.slug === 'admin') && (
           <div className="flex items-center gap-2.5 shrink-0">
             <button
+              type="button"
               className="btn-secondary"
               onClick={() => setImportOpen(true)}
               title="Import Leads from CSV"
@@ -148,6 +149,7 @@ export default function Leads() {
               Import CSV
             </button>
             <button
+              type="button"
               className="btn-primary"
               onClick={() => { setEditingLead(null); setFormOpen(true); }}
             >

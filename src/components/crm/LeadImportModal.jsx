@@ -795,15 +795,25 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
               <button type="button" onClick={() => setStep(3)} className="btn-secondary text-xs">
                 <ArrowLeft className="h-3.5 w-3.5" /> Back to Options
               </button>
-              <button
-                type="button"
-                disabled={isImporting || (validationResult?.summary?.importableCount === 0 && validationResult?.summary?.totalRows > 0)}
-                onClick={handleExecuteImport}
-                className="btn-primary text-xs"
-              >
-                <ShieldCheck className="h-4 w-4" />
-                Confirm & Import {validationResult?.summary?.importableCount || 0} Leads
-              </button>
+              {validationResult?.summary?.importableCount > 0 ? (
+                <button
+                  type="button"
+                  disabled={isImporting}
+                  onClick={handleExecuteImport}
+                  className="btn-primary text-xs"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  Confirm & Import {validationResult.summary.importableCount} Leads
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="btn-primary text-xs bg-marine hover:bg-marine-light"
+                >
+                  View Existing Leads in CRM
+                </button>
+              )}
             </>
           )}
 
