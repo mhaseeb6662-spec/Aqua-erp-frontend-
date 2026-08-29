@@ -2,35 +2,69 @@ import { useState, useRef, useMemo } from 'react';
 import {
   Upload, X, FileText, CheckCircle2, AlertTriangle, AlertCircle,
   Download, ArrowRight, ArrowLeft, RefreshCw, Layers, ShieldCheck,
-  Check, Filter, Users, Database, Sparkles, ChevronDown
+  Check, Filter, Users, Database, Sparkles, ChevronDown, Info
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import leadService from '../../services/leadService';
 import { LEAD_SOURCES, PIPELINE_STAGES } from '../../constants/crm';
 
-// Supported ERP Lead Fields for Column Mapping
+// Supported ERP Lead Fields with Exact-First Auto-Mapping
 const ERP_FIELDS = [
-  { key: 'fullName', label: 'Full Name / Contact Name', required: true, autoKeywords: ['name', 'fullname', 'full name', 'contact name', 'lead name', 'student name'] },
-  { key: 'firstName', label: 'First Name', required: false, autoKeywords: ['first name', 'firstname', 'fname'] },
-  { key: 'lastName', label: 'Last Name', required: false, autoKeywords: ['last name', 'lastname', 'lname'] },
-  { key: 'phone', label: 'Phone / Mobile', required: true, autoKeywords: ['phone', 'mobile', 'phone number', 'mobile number', 'contact number', 'tel', 'whatsapp'] },
-  { key: 'email', label: 'Email Address', required: false, autoKeywords: ['email', 'email address', 'e-mail', 'mail'] },
-  { key: 'source', label: 'Lead Source', required: false, autoKeywords: ['source', 'lead source', 'channel', 'signup source', 'platform'] },
-  { key: 'status', label: 'Status / Stage', required: false, autoKeywords: ['status', 'stage', 'lead status', 'pipeline stage'] },
-  { key: 'owner', label: 'Owner / Sales Rep', required: false, autoKeywords: ['owner', 'sales rep', 'assigned to', 'agent', 'salesperson'] },
-  { key: 'createdOn', label: 'Created Date', required: false, autoKeywords: ['created on', 'created at', 'created date', 'date', 'signup date', 'lead date'] },
-  { key: 'interestLevel', label: 'Interest Level', required: false, autoKeywords: ['interest level', 'interest', 'priority', 'rating', 'temperature'] },
-  { key: 'subject', label: 'Subject / Program Interest', required: false, autoKeywords: ['subject', 'course', 'courses', 'program', 'interested in', 'curriculum'] },
-  { key: 'notes', label: 'Notes / Last Note', required: false, autoKeywords: ['last note', 'note', 'notes', 'comment', 'remarks'] },
-  { key: 'city', label: 'City / Location', required: false, autoKeywords: ['city', 'location', 'emirate', 'address'] },
-  { key: 'age', label: 'Age', required: false, autoKeywords: ['age'] },
-  { key: 'gender', label: 'Gender', required: false, autoKeywords: ['gender', 'sex'] },
-  { key: 'nationality', label: 'Nationality', required: false, autoKeywords: ['nationality', 'country'] },
-  { key: 'guardianName', label: 'Guardian / Parent Name', required: false, autoKeywords: ['guardian name', 'parent name', 'father name', 'mother name'] },
-  { key: 'guardianPhone', label: 'Guardian Phone', required: false, autoKeywords: ['guardian phone', 'parent phone'] },
-  { key: 'guardianEmail', label: 'Guardian Email', required: false, autoKeywords: ['guardian email', 'parent email'] },
-  { key: 'numberOfKids', label: 'Number of Kids', required: false, autoKeywords: ['number of kids', 'kids', 'children', 'no of kids'] },
+  { key: 'fullName', label: 'Full Name / Contact Name', required: true, exact: ['name', 'full name', 'fullname', 'contact name', 'lead name', 'student name'], fallback: ['contact'] },
+  { key: 'firstName', label: 'First Name', required: false, exact: ['first name', 'firstname', 'fname'], fallback: [] },
+  { key: 'lastName', label: 'Last Name', required: false, exact: ['last name', 'lastname', 'lname'], fallback: [] },
+  { key: 'phone', label: 'Phone / Mobile', required: true, exact: ['phone', 'mobile', 'phone number', 'mobile number', 'contact number', 'tel', 'whatsapp'], fallback: [] },
+  { key: 'email', label: 'Email Address', required: false, exact: ['email', 'email address', 'e-mail', 'mail'], fallback: [] },
+  { key: 'source', label: 'Lead Source', required: false, exact: ['source', 'lead source', 'channel', 'platform'], fallback: ['signup source'] },
+  { key: 'status', label: 'Status / Stage', required: false, exact: ['status', 'stage', 'lead status', 'pipeline stage'], fallback: [] },
+  { key: 'owner', label: 'Owner / Sales Rep', required: false, exact: ['owner', 'sales rep', 'assigned to', 'agent', 'salesperson'], fallback: [] },
+  { key: 'createdOn', label: 'Created Date', required: false, exact: ['created on', 'created at', 'created date', 'date', 'signup date', 'lead date'], fallback: [] },
+  { key: 'interestLevel', label: 'Interest Level', required: false, exact: ['interest level', 'interest', 'priority', 'rating', 'temperature'], fallback: [] },
+  { key: 'subject', label: 'Subject / Program Interest', required: false, exact: ['subject', 'course', 'courses', 'program', 'interested in'], fallback: [] },
+  { key: 'notes', label: 'Notes / Last Note', required: false, exact: ['last note', 'note', 'notes', 'comment', 'remarks'], fallback: [] },
+  { key: 'city', label: 'City / Location', required: false, exact: ['city', 'location', 'emirate', 'address'], fallback: [] },
+  { key: 'age', label: 'Age', required: false, exact: ['age'], fallback: [] },
+  { key: 'gender', label: 'Gender', required: false, exact: ['gender', 'sex'], fallback: [] },
+  { key: 'nationality', label: 'Nationality', required: false, exact: ['nationality', 'country'], fallback: [] },
+  { key: 'guardianName', label: 'Guardian / Parent Name', required: false, exact: ['guardian name', 'guardian', 'parent name', 'parent', 'father name', 'mother name'], fallback: [] },
+  { key: 'guardianPhone', label: 'Guardian Phone', required: false, exact: ['guardian phone', 'parent phone', 'emergency phone'], fallback: [] },
+  { key: 'guardianEmail', label: 'Guardian Email', required: false, exact: ['guardian email', 'parent email'], fallback: [] },
+  { key: 'numberOfKids', label: 'Number of Kids', required: false, exact: ['number of kids', 'kids', 'children', 'no of kids'], fallback: [] },
+  { key: 'birthday', label: 'Birthday', required: false, exact: ['birthday', 'dob', 'date of birth'], fallback: [] },
+  { key: 'lastContacted', label: 'Last Contacted', required: false, exact: ['last contacted', 'contacted date', 'last contact'], fallback: [] },
+  { key: 'followUp', label: 'Follow Up Date', required: false, exact: ['follow up', 'follow up date', 'followup', 'next follow up'], fallback: [] },
 ];
+
+function generateAutoMapping(headers) {
+  const mapping = {};
+  const cleanHeaders = headers.map((h) => h.trim());
+
+  for (const field of ERP_FIELDS) {
+    let matched = null;
+    // 1. Exact match
+    for (const h of cleanHeaders) {
+      const hLower = h.toLowerCase();
+      if (field.exact.includes(hLower)) {
+        matched = h;
+        break;
+      }
+    }
+    // 2. Fallback match
+    if (!matched && field.fallback.length > 0) {
+      for (const h of cleanHeaders) {
+        const hLower = h.toLowerCase();
+        if (field.fallback.includes(hLower)) {
+          matched = h;
+          break;
+        }
+      }
+    }
+    if (matched) {
+      mapping[field.key] = matched;
+    }
+  }
+  return mapping;
+}
 
 function parseCSVText(text) {
   const lines = [];
@@ -38,10 +72,16 @@ function parseCSVText(text) {
   let curField = '';
   let inQuotes = false;
 
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
+  // Strip BOM if present
+  let cleanText = text;
+  if (cleanText.charCodeAt(0) === 0xFEFF) {
+    cleanText = cleanText.slice(1);
+  }
+
+  for (let i = 0; i < cleanText.length; i++) {
+    const c = cleanText[i];
     if (c === '"') {
-      if (inQuotes && text[i + 1] === '"') {
+      if (inQuotes && cleanText[i + 1] === '"') {
         curField += '"';
         i++;
       } else {
@@ -51,7 +91,7 @@ function parseCSVText(text) {
       curLine.push(curField.trim());
       curField = '';
     } else if ((c === '\r' || c === '\n') && !inQuotes) {
-      if (c === '\r' && text[i + 1] === '\n') {
+      if (c === '\r' && cleanText[i + 1] === '\n') {
         i++;
       }
       curLine.push(curField.trim());
@@ -108,8 +148,8 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
       toast.error('Please select a valid .csv file.');
       return;
     }
-    if (selectedFile.size > 15 * 1024 * 1024) {
-      toast.error('File size exceeds maximum limit of 15MB.');
+    if (selectedFile.size > 25 * 1024 * 1024) {
+      toast.error('File size exceeds maximum limit of 25MB.');
       return;
     }
 
@@ -123,12 +163,16 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
           return;
         }
 
-        const headers = rows[0];
+        const headers = rows[0].map((h) => h.replace(/^["']|["']$/g, '').trim());
         const dataRows = [];
         for (let i = 1; i < rows.length; i++) {
           const rowObj = {};
           headers.forEach((h, colIdx) => {
-            rowObj[h] = rows[i][colIdx] || '';
+            let val = rows[i][colIdx] !== undefined ? rows[i][colIdx] : '';
+            if (val.startsWith('"') && val.endsWith('"') && val.length >= 2) {
+              val = val.slice(1, -1).replace(/""/g, '"');
+            }
+            rowObj[h] = val.trim();
           });
           dataRows.push(rowObj);
         }
@@ -137,17 +181,8 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
         setCsvHeaders(headers);
         setParsedRows(dataRows);
 
-        // Auto Map Columns
-        const initialMapping = {};
-        ERP_FIELDS.forEach((erpField) => {
-          const matchedHeader = headers.find((h) => {
-            const cleanHeader = h.toLowerCase().trim();
-            return erpField.autoKeywords.some((kw) => cleanHeader === kw || cleanHeader.includes(kw));
-          });
-          if (matchedHeader) {
-            initialMapping[erpField.key] = matchedHeader;
-          }
-        });
+        // Auto Map Columns with exact-first algorithm
+        const initialMapping = generateAutoMapping(headers);
         setFieldMapping(initialMapping);
         toast.success(`Loaded ${dataRows.length} rows from CSV.`);
       } catch (err) {
@@ -235,7 +270,7 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
       setImportProgress(100);
       setImportResult(data.data);
       setStep(6); // Move to Result
-      toast.success(`Successfully imported ${data.data.importedCount} leads!`);
+      toast.success(`Successfully completed import! ${data.data.importedCount} leads added.`);
       if (onImportComplete) onImportComplete();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to execute lead import.');
@@ -382,7 +417,7 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
                   <div className="space-y-2">
                     <Upload className="h-10 w-10 text-slate-400 mx-auto" />
                     <h3 className="text-base font-bold text-marine">Choose a CSV file or drag & drop here</h3>
-                    <p className="text-xs text-slate-500">Supports standard UTF-8 encoded .csv files up to 15MB</p>
+                    <p className="text-xs text-slate-500">Supports standard UTF-8 encoded .csv files up to 25MB</p>
                     <button type="button" className="btn-primary text-xs mt-3">
                       Browse Computer
                     </button>
@@ -535,7 +570,7 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
                 </div>
                 <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
                   <span className="text-xs text-emerald-700 font-bold block">Ready to Import</span>
-                  <span className="text-xl font-extrabold text-emerald-700">{validationResult.summary.readyCount}</span>
+                  <span className="text-xl font-extrabold text-emerald-700">{validationResult.summary.importableCount}</span>
                 </div>
                 <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-center">
                   <span className="text-xs text-amber-700 font-bold block">Duplicates</span>
@@ -546,6 +581,15 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
                   <span className="text-xl font-extrabold text-coral">{validationResult.summary.invalidCount}</span>
                 </div>
               </div>
+
+              {validationResult.summary.importableCount === 0 && (
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2.5 text-xs text-amber-800">
+                  <Info className="h-4 w-4 shrink-0 text-amber-600" />
+                  <span>
+                    All records in this CSV file already exist in the CRM database or are duplicates. No new records will be created.
+                  </span>
+                </div>
+              )}
 
               {/* Filter Tabs */}
               <div className="flex items-center justify-between border-b border-slate-200 pb-2">
@@ -653,7 +697,7 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
                 <CheckCircle2 className="h-10 w-10" />
               </div>
               <div>
-                <h3 className="text-xl font-extrabold text-marine">Import Completed Successfully!</h3>
+                <h3 className="text-xl font-extrabold text-marine">Import Process Completed!</h3>
                 <p className="text-xs text-slate-500 mt-1">
                   Batch ID: <span className="font-mono font-bold text-slate-700">{importResult.batchId}</span>
                 </p>
@@ -677,6 +721,12 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
                   <span className="text-2xl font-extrabold text-tide">{importResult.durationSeconds}s</span>
                 </div>
               </div>
+
+              {importResult.importedCount === 0 && importResult.duplicatesSkipped > 0 && (
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  All records in this file already existed in your CRM. They were safely recognized and protected from duplicate creation.
+                </p>
+              )}
             </div>
           )}
 
@@ -747,7 +797,7 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
               </button>
               <button
                 type="button"
-                disabled={isImporting || validationResult?.summary?.importableCount === 0}
+                disabled={isImporting || (validationResult?.summary?.importableCount === 0 && validationResult?.summary?.totalRows > 0)}
                 onClick={handleExecuteImport}
                 className="btn-primary text-xs"
               >

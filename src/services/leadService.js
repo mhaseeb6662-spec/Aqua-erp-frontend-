@@ -19,6 +19,7 @@ const leadService = {
   convertLead: (id, payload) => api.post(`/leads/${id}/convert`, payload),
 
   // CSV Import & Validation
+  uploadLeadCsv: (formData) => api.post('/leads/import/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   validateLeadCsv: (payload) => api.post('/leads/import/validate', payload),
   executeLeadImport: (payload) => api.post('/leads/import/execute', payload),
   getImportBatches: (params) => api.get('/leads/import/batches', { params }),
