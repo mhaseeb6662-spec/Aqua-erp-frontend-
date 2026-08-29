@@ -37,7 +37,8 @@ const ERP_FIELDS = [
 
 function generateAutoMapping(headers) {
   const mapping = {};
-  const cleanHeaders = headers.map((h) => h.trim());
+  if (!Array.isArray(headers)) return mapping;
+  const cleanHeaders = headers.map((h) => String(h || '').trim());
 
   for (const field of ERP_FIELDS) {
     let matched = null;
@@ -72,8 +73,7 @@ function parseCSVText(text) {
   let curField = '';
   let inQuotes = false;
 
-  // Strip BOM if present
-  let cleanText = text;
+  let cleanText = String(text || '');
   if (cleanText.charCodeAt(0) === 0xFEFF) {
     cleanText = cleanText.slice(1);
   }
@@ -163,12 +163,12 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
           return;
         }
 
-        const headers = rows[0].map((h) => h.replace(/^["']|["']$/g, '').trim());
+        const headers = rows[0].map((h) => String(h || '').replace(/^["']|["']$/g, '').trim());
         const dataRows = [];
         for (let i = 1; i < rows.length; i++) {
           const rowObj = {};
           headers.forEach((h, colIdx) => {
-            let val = rows[i][colIdx] !== undefined ? rows[i][colIdx] : '';
+            let val = rows[i][colIdx] !== undefined ? String(rows[i][colIdx]) : '';
             if (val.startsWith('"') && val.endsWith('"') && val.length >= 2) {
               val = val.slice(1, -1).replace(/""/g, '"');
             }
@@ -270,7 +270,7 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
       setImportProgress(100);
       setImportResult(data.data);
       setStep(6); // Move to Result
-      toast.success(`Successfully completed import! ${data.data.importedCount} leads added.`);
+      toast.success(`Successfully completed import! ${data.data?.importedCount || 0} leads added.`);
       if (onImportComplete) onImportComplete();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to execute lead import.');
@@ -280,18 +280,25 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
     }
   };
 
+  const previewRows = validationResult?.previewRows || [];
   const filteredPreviewRows = useMemo(() => {
-    if (!validationResult?.previewRows) return [];
-    if (previewTab === 'all') return validationResult.previewRows;
-    return validationResult.previewRows.filter((r) => r.status === previewTab);
-  }, [validationResult, previewTab]);
+    if (!Array.isArray(previewRows)) return [];
+    if (previewTab === 'all') return previewRows;
+    return previewRows.filter((r) => r && r.status === previewTab);
+  }, [previewRows, previewTab]);
+
+  const totalRowsCount = validationResult?.summary?.totalRows || 0;
+  const importableCount = validationResult?.summary?.importableCount || 0;
+  const duplicateCount = validationResult?.summary?.duplicateCount || 0;
+  const invalidCount = validationResult?.summary?.invalidCount || 0;
+  const readyCount = validationResult?.summary?.readyCount || 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-marine-dark/60 backdrop-blur-xs overflow-y-auto">
-      <div className="card w-full max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden shadow-2xl animate-fade-in my-auto border border-marine/15">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-marine-dark/50 backdrop-blur-sm overflow-y-auto">
+      <div className="bg-white rounded-2xl border border-slate-200 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-rise my-auto">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-marine/10 bg-marine text-white">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-marine/10 bg-marine text-white shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-white/10 text-tide-light">
               <Upload className="h-5 w-5" />
@@ -303,6 +310,7 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
           </div>
           {step !== 5 && (
             <button
+              type="button"
               onClick={onClose}
               className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition"
             >
@@ -312,7 +320,7 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
         </div>
 
         {/* Step Indicator Bar */}
-        <div className="bg-slate-50 px-6 py-3 border-b border-slate-200/80 flex items-center justify-between text-xs font-semibold overflow-x-auto">
+        <div className="bg-slate-50 px-6 py-3 border-b border-slate-200 flex items-center justify-between text-xs font-semibold overflow-x-auto shrink-0">
           {[
             { num: 1, label: 'Upload CSV' },
             { num: 2, label: 'Map Columns' },
@@ -347,7 +355,7 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
           {/* STEP 1: UPLOAD CSV */}
           {step === 1 && (
             <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-cyan-50/60 border border-cyan-200/80">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-cyan-50 border border-cyan-200">
                 <div className="flex items-center gap-3">
                   <FileText className="h-6 w-6 text-tide shrink-0" />
                   <div>
@@ -380,7 +388,7 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
                     ? 'border-tide bg-tide/5 scale-[0.99]'
                     : file
                     ? 'border-emerald-400 bg-emerald-50/40'
-                    : 'border-slate-300 hover:border-tide hover:bg-slate-50/60'
+                    : 'border-slate-300 hover:border-tide hover:bg-slate-50'
                 }`}
               >
                 <input
@@ -454,7 +462,7 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
                       const selectedHeader = fieldMapping[field.key] || '';
                       const sampleVal = selectedHeader && parsedRows[0] ? parsedRows[0][selectedHeader] : '—';
                       return (
-                        <tr key={field.key} className="hover:bg-slate-50/50">
+                        <tr key={field.key} className="hover:bg-slate-50">
                           <td className="px-4 py-2.5">
                             <div className="font-semibold text-slate-800 flex items-center gap-1.5">
                               {field.label}
@@ -522,7 +530,7 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
               </div>
 
               <div className="space-y-3 pt-2">
-                <label className="flex items-start gap-3 p-3.5 rounded-xl border border-amber-200/80 bg-amber-50/50 cursor-pointer">
+                <label className="flex items-start gap-3 p-3.5 rounded-xl border border-amber-200 bg-amber-50 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={isHistoricalImport}
@@ -539,7 +547,7 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
                   </div>
                 </label>
 
-                <label className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 cursor-pointer">
+                <label className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={skipDuplicates}
@@ -560,33 +568,33 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
           )}
 
           {/* STEP 4: DRY RUN PREVIEW */}
-          {step === 4 && validationResult && (
+          {step === 4 && (
             <div className="space-y-5">
               {/* Stat Badges */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
                   <span className="text-xs text-slate-500 font-bold block">Total Rows</span>
-                  <span className="text-xl font-extrabold text-marine">{validationResult.summary.totalRows}</span>
+                  <span className="text-xl font-extrabold text-marine">{totalRowsCount}</span>
                 </div>
                 <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
                   <span className="text-xs text-emerald-700 font-bold block">Ready to Import</span>
-                  <span className="text-xl font-extrabold text-emerald-700">{validationResult.summary.importableCount}</span>
+                  <span className="text-xl font-extrabold text-emerald-700">{importableCount}</span>
                 </div>
                 <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-center">
                   <span className="text-xs text-amber-700 font-bold block">Duplicates</span>
-                  <span className="text-xl font-extrabold text-amber-700">{validationResult.summary.duplicateCount}</span>
+                  <span className="text-xl font-extrabold text-amber-700">{duplicateCount}</span>
                 </div>
                 <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-center">
                   <span className="text-xs text-coral font-bold block">Invalid Rows</span>
-                  <span className="text-xl font-extrabold text-coral">{validationResult.summary.invalidCount}</span>
+                  <span className="text-xl font-extrabold text-coral">{invalidCount}</span>
                 </div>
               </div>
 
-              {validationResult.summary.importableCount === 0 && (
+              {importableCount === 0 && totalRowsCount > 0 && (
                 <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2.5 text-xs text-amber-800">
                   <Info className="h-4 w-4 shrink-0 text-amber-600" />
                   <span>
-                    All records in this CSV file already exist in the CRM database or are duplicates. No new records will be created.
+                    All records in this CSV file already exist in your CRM database or are duplicates. To prevent creating duplicates, no new records need to be added.
                   </span>
                 </div>
               )}
@@ -595,12 +603,13 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
               <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                 <div className="flex items-center gap-2 text-xs">
                   {[
-                    { key: 'all', label: `All Preview (${validationResult.previewRows.length})` },
-                    { key: 'ready', label: `Ready (${validationResult.summary.readyCount})` },
-                    { key: 'duplicate', label: `Duplicates (${validationResult.summary.duplicateCount})` },
-                    { key: 'invalid', label: `Invalid (${validationResult.summary.invalidCount})` },
+                    { key: 'all', label: `All Preview (${previewRows.length})` },
+                    { key: 'ready', label: `Ready (${readyCount})` },
+                    { key: 'duplicate', label: `Duplicates (${duplicateCount})` },
+                    { key: 'invalid', label: `Invalid (${invalidCount})` },
                   ].map((tab) => (
                     <button
+                      type="button"
                       key={tab.key}
                       onClick={() => setPreviewTab(tab.key)}
                       className={`px-3 py-1.5 rounded-lg font-bold transition ${
@@ -638,34 +647,39 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
                         </td>
                       </tr>
                     ) : (
-                      filteredPreviewRows.map((r) => (
-                        <tr key={r.rowNum} className="hover:bg-slate-50/50">
-                          <td className="px-3 py-2 font-mono text-slate-400">{r.rowNum}</td>
-                          <td className="px-3 py-2">
-                            <span
-                              className={`badge text-[10px] font-bold ${
-                                r.status === 'ready'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : r.status === 'duplicate'
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : r.status === 'warning'
-                                  ? 'bg-cyan-100 text-cyan-800'
-                                  : 'bg-red-100 text-red-800'
-                              }`}
-                            >
-                              {r.status.toUpperCase()}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 font-medium text-slate-800 truncate max-w-[140px]">{r.data.fullName}</td>
-                          <td className="px-3 py-2 font-mono text-slate-600">{r.data.phone || '—'}</td>
-                          <td className="px-3 py-2 text-slate-600 truncate max-w-[140px]">{r.data.email || '—'}</td>
-                          <td className="px-3 py-2 text-slate-600">{r.data.source}</td>
-                          <td className="px-3 py-2 text-slate-600 uppercase font-semibold">{r.data.stage}</td>
-                          <td className="px-3 py-2 text-slate-500 text-[11px] truncate max-w-[180px]">
-                            {r.issues.length > 0 ? r.issues.join(', ') : '—'}
-                          </td>
-                        </tr>
-                      ))
+                      filteredPreviewRows.map((r, idx) => {
+                        const statusStr = String(r?.status || 'ready');
+                        const dataObj = r?.data || {};
+                        const issuesArr = Array.isArray(r?.issues) ? r.issues : [];
+                        return (
+                          <tr key={r?.rowNum || idx} className="hover:bg-slate-50">
+                            <td className="px-3 py-2 font-mono text-slate-400">{r?.rowNum || idx + 1}</td>
+                            <td className="px-3 py-2">
+                              <span
+                                className={`badge text-[10px] font-bold ${
+                                  statusStr === 'ready'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : statusStr === 'duplicate'
+                                    ? 'bg-amber-100 text-amber-800'
+                                    : statusStr === 'warning'
+                                    ? 'bg-cyan-100 text-cyan-800'
+                                    : 'bg-red-100 text-red-800'
+                                }`}
+                              >
+                                {statusStr.toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 font-medium text-slate-800 truncate max-w-[140px]">{dataObj.fullName || '—'}</td>
+                            <td className="px-3 py-2 font-mono text-slate-600">{dataObj.phone || '—'}</td>
+                            <td className="px-3 py-2 text-slate-600 truncate max-w-[140px]">{dataObj.email || '—'}</td>
+                            <td className="px-3 py-2 text-slate-600">{dataObj.source || '—'}</td>
+                            <td className="px-3 py-2 text-slate-600 uppercase font-semibold">{dataObj.stage || '—'}</td>
+                            <td className="px-3 py-2 text-slate-500 text-[11px] truncate max-w-[180px]">
+                              {issuesArr.length > 0 ? issuesArr.join(', ') : '—'}
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -691,38 +705,38 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
           )}
 
           {/* STEP 6: IMPORT RESULTS */}
-          {step === 6 && importResult && (
+          {step === 6 && (
             <div className="space-y-6 text-center py-4">
-              <div className="h-16 w-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
+              <div className="h-16 w-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-xs">
                 <CheckCircle2 className="h-10 w-10" />
               </div>
               <div>
                 <h3 className="text-xl font-extrabold text-marine">Import Process Completed!</h3>
                 <p className="text-xs text-slate-500 mt-1">
-                  Batch ID: <span className="font-mono font-bold text-slate-700">{importResult.batchId}</span>
+                  Batch ID: <span className="font-mono font-bold text-slate-700">{importResult?.batchId || '—'}</span>
                 </p>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto">
                 <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200">
                   <span className="text-xs text-emerald-700 font-bold block">Imported</span>
-                  <span className="text-2xl font-extrabold text-emerald-700">{importResult.importedCount}</span>
+                  <span className="text-2xl font-extrabold text-emerald-700">{importResult?.importedCount || 0}</span>
                 </div>
                 <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
                   <span className="text-xs text-amber-700 font-bold block">Duplicates Skipped</span>
-                  <span className="text-2xl font-extrabold text-amber-700">{importResult.duplicatesSkipped}</span>
+                  <span className="text-2xl font-extrabold text-amber-700">{importResult?.duplicatesSkipped || 0}</span>
                 </div>
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
                   <span className="text-xs text-slate-600 font-bold block">Total Rows</span>
-                  <span className="text-2xl font-extrabold text-marine">{importResult.totalRows}</span>
+                  <span className="text-2xl font-extrabold text-marine">{importResult?.totalRows || 0}</span>
                 </div>
                 <div className="p-3.5 rounded-xl bg-cyan-50 border border-cyan-200">
                   <span className="text-xs text-tide font-bold block">Duration</span>
-                  <span className="text-2xl font-extrabold text-tide">{importResult.durationSeconds}s</span>
+                  <span className="text-2xl font-extrabold text-tide">{importResult?.durationSeconds || 0}s</span>
                 </div>
               </div>
 
-              {importResult.importedCount === 0 && importResult.duplicatesSkipped > 0 && (
+              {importResult?.importedCount === 0 && (importResult?.duplicatesSkipped || 0) > 0 && (
                 <p className="text-xs text-slate-500 max-w-md mx-auto">
                   All records in this file already existed in your CRM. They were safely recognized and protected from duplicate creation.
                 </p>
@@ -733,7 +747,7 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
         </div>
 
         {/* Modal Footer Controls */}
-        <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
           {step === 1 && (
             <>
               <button type="button" onClick={onClose} className="btn-secondary text-xs">
@@ -795,7 +809,7 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
               <button type="button" onClick={() => setStep(3)} className="btn-secondary text-xs">
                 <ArrowLeft className="h-3.5 w-3.5" /> Back to Options
               </button>
-              {validationResult?.summary?.importableCount > 0 ? (
+              {importableCount > 0 ? (
                 <button
                   type="button"
                   disabled={isImporting}
@@ -803,7 +817,7 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
                   className="btn-primary text-xs"
                 >
                   <ShieldCheck className="h-4 w-4" />
-                  Confirm & Import {validationResult.summary.importableCount} Leads
+                  Confirm & Import {importableCount} Leads
                 </button>
               ) : (
                 <button
