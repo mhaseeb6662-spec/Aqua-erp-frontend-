@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import {
   Upload, X, FileText, CheckCircle2, AlertTriangle, AlertCircle,
   Download, ArrowRight, ArrowLeft, RefreshCw, Layers, ShieldCheck,
@@ -114,6 +114,7 @@ function parseCSVText(text) {
 }
 
 export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
+  // 1. ALL HOOK DECLARATIONS MUST BE UNCONDITIONAL AND DECLARED AT THE VERY TOP
   const [step, setStep] = useState(1); // 1: Upload, 2: Map, 3: Options, 4: Preview/Validate, 5: Importing, 6: Result
   const [file, setFile] = useState(null);
   const [csvHeaders, setCsvHeaders] = useState([]);
@@ -139,9 +140,43 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
 
   const fileInputRef = useRef(null);
 
+  // Derived memoized values MUST be declared before any conditional return
+  const previewRows = useMemo(() => {
+    return validationResult?.previewRows || [];
+  }, [validationResult]);
+
+  const filteredPreviewRows = useMemo(() => {
+    if (!Array.isArray(previewRows)) return [];
+    if (previewTab === 'all') return previewRows;
+    return previewRows.filter((r) => r && r.status === previewTab);
+  }, [previewRows, previewTab]);
+
+  // Reset state when modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setStep(1);
+      setFile(null);
+      setCsvHeaders([]);
+      setParsedRows([]);
+      setFieldMapping({});
+      setDragOver(false);
+      setDefaultSource('Other');
+      setDefaultStage('new');
+      setIsHistoricalImport(true);
+      setSkipDuplicates(true);
+      setIsValidating(false);
+      setValidationResult(null);
+      setPreviewTab('all');
+      setIsImporting(false);
+      setImportResult(null);
+      setImportProgress(0);
+    }
+  }, [isOpen]);
+
+  // 2. CONDITIONAL RETURN MUST ONLY BE PLACED AFTER ALL HOOKS ARE DECLARED
   if (!isOpen) return null;
 
-  // 1. Handle File Selection
+  // 3. EVENT HANDLERS & HELPERS
   const handleFileChange = (selectedFile) => {
     if (!selectedFile) return;
     if (!selectedFile.name.toLowerCase().endsWith('.csv')) {
@@ -279,13 +314,6 @@ export default function LeadImportModal({ isOpen, onClose, onImportComplete }) {
       setIsImporting(false);
     }
   };
-
-  const previewRows = validationResult?.previewRows || [];
-  const filteredPreviewRows = useMemo(() => {
-    if (!Array.isArray(previewRows)) return [];
-    if (previewTab === 'all') return previewRows;
-    return previewRows.filter((r) => r && r.status === previewTab);
-  }, [previewRows, previewTab]);
 
   const totalRowsCount = validationResult?.summary?.totalRows || 0;
   const importableCount = validationResult?.summary?.importableCount || 0;
