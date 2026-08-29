@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Search, ArrowUpDown, Plus, Upload } from 'lucide-react';
+import { Search, ArrowUpDown, Plus, Upload, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Loader from '../../components/common/Loader';
+import ErrorBoundary from '../../components/common/ErrorBoundary';
 import LeadCard from '../../components/crm/LeadCard';
 import LeadFormModal from '../../components/crm/LeadFormModal';
 import LeadImportModal from '../../components/crm/LeadImportModal';
@@ -22,7 +23,50 @@ export default function Pipeline() {
   const [dragOverStage, setDragOverStage] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const canUpdateStage = hasPermission('crm:pipeline:update');
+
+  const handleExport = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      let sortBy = 'createdAt';
+      let sortOrder = 'desc';
+      if (dateSort === 'oldest') {
+        sortBy = 'createdAt';
+        sortOrder = 'asc';
+      } else if (dateSort === 'recent_update') {
+        sortBy = 'updatedAt';
+        sortOrder = 'desc';
+      } else if (dateSort === 'least_recent_update') {
+        sortBy = 'updatedAt';
+        sortOrder = 'asc';
+      }
+
+      const res = await leadService.exportLeadsCsv({
+        search,
+        source,
+        sortBy,
+        sortOrder,
+      });
+
+      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const dateStr = new Date().toISOString().split('T')[0];
+      link.href = url;
+      link.setAttribute('download', `aqua-fishing-leads-${dateStr}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success('Pipeline leads exported to CSV successfully.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to export pipeline leads CSV.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -158,6 +202,16 @@ export default function Pipeline() {
             <button
               type="button"
               className="btn-secondary"
+              onClick={handleExport}
+              disabled={isExporting}
+              title="Export filtered leads to CSV"
+            >
+              <Download className={`h-4 w-4 text-tide ${isExporting ? 'animate-bounce' : ''}`} />
+              {isExporting ? 'Exporting...' : 'Export CSV'}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
               onClick={() => setImportOpen(true)}
               title="Import Leads from CSV"
             >
@@ -228,11 +282,13 @@ export default function Pipeline() {
       />
 
       {/* CSV Lead Import Wizard */}
-      <LeadImportModal
-        isOpen={importOpen}
-        onClose={() => setImportOpen(false)}
-        onImportComplete={load}
-      />
+      <ErrorBoundary title="Unable to open CSV Import modal. Please try again.">
+        <LeadImportModal
+          isOpen={importOpen}
+          onClose={() => setImportOpen(false)}
+          onImportComplete={load}
+        />
+      </ErrorBoundary>
     </DashboardLayout>
   );
 }
