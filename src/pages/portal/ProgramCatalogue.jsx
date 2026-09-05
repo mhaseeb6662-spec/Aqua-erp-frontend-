@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import OnlineCheckoutModal from '../finance/OnlineCheckoutModal';
 import portalService from '../../services/portalService';
 import financeService from '../../services/financeService';
 import toast from 'react-hot-toast';
 import { formatAED } from '../../utils/currency';
 import {
-  BookOpen, Search, Filter, Compass, Award, Users, DollarSign, Calendar, MapPin, CheckCircle2, Plus, X, ArrowRight, Star, CreditCard, FileText, CheckCircle, ShieldCheck, Download, Receipt
+  BookOpen, Search, Filter, Compass, Award, Users, DollarSign, Calendar, MapPin, CheckCircle2, Plus, X, ArrowRight, Edit, Trash2, Star, CreditCard, FileText, CheckCircle, ShieldCheck, Download, Receipt
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
@@ -24,7 +25,7 @@ export default function ProgramCatalogue() {
   // Modals
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  
 
   // Booking Wizard Steps: 'form' -> 'invoice' -> 'confirmation'
   const [bookingStep, setBookingStep] = useState('form');
@@ -48,18 +49,29 @@ export default function ProgramCatalogue() {
   const [bookingNotes, setBookingNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Program Create Form
-  const [newProgram, setNewProgram] = useState({
-    title: '',
-    code: '',
-    category: 'Fishing Essentials',
-    description: '',
-    level: 'Beginner',
-    ageGroup: 'All Ages',
+    // Program Create/Edit Form
+  const [showProgramModal, setShowProgramModal] = useState(false);
+  const [editingProgramId, setEditingProgramId] = useState(null);
+  
+  // Delete/Archive Modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [programToDelete, setProgramToDelete] = useState(null);
+  const [deleteDependencies, setDeleteDependencies] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [programForm, setProgramForm] = useState({
+    title: "",
+    description: "",
+    ageGroup: "All Ages",
     durationWeeks: 4,
+    durationHours: 1,
+    durationMinutes: 0,
     price: 299,
-    calendarColor: 'blue',
+    calendarColor: "Red",
+    status: "active",
     branches: [],
+    brochureUrl: "",
+    brochureMetadata: null
   });
 
   const fetchData = async () => {
@@ -70,6 +82,7 @@ export default function ProgramCatalogue() {
           category: selectedCategory,
           level: selectedLevel,
           branch: selectedBranch,
+          ...(hasPermission('portal:programs:manage') ? {} : { activeOnly: 'true' }),
         }),
         portalService.getBranches(),
       ]);
@@ -157,27 +170,120 @@ export default function ProgramCatalogue() {
     }
   };
 
-  const handleCreateProgramSubmit = async (e) => {
+
+  const handleOpenCreate = () => {
+    setEditingProgramId(null);
+    setProgramForm({
+      title: "", description: "", ageGroup: "All Ages", durationWeeks: 4, durationHours: 1, durationMinutes: 0, price: 299, calendarColor: "Red", status: "active", branches: [], brochureUrl: "", brochureMetadata: null
+    });
+    setShowProgramModal(true);
+  };
+
+  const handleOpenEdit = (prog) => {
+    setEditingProgramId(prog._id);
+    setProgramForm({
+      title: prog.title || "",
+      description: prog.description || "",
+      ageGroup: prog.ageGroup || "All Ages",
+      durationWeeks: prog.durationWeeks || 4,
+      durationHours: prog.durationHours || 1,
+      durationMinutes: prog.durationMinutes || 0,
+      price: prog.price || 0,
+      calendarColor: prog.calendarColor || "Red",
+      status: prog.status || "active",
+      branches: (prog.branches || []).map(b => typeof b === 'object' ? b._id : b),
+      brochureUrl: prog.brochureUrl || "",
+      brochureMetadata: prog.brochureMetadata || null
+    });
+    setShowProgramModal(true);
+  };
+
+  const handleBrochureUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      alert('Only JPG, PNG and WEBP images are supported for the brochure.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Brochure image size must be less than 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProgramForm((prev) => ({
+        ...prev,
+        brochureUrl: reader.result,
+        brochureMetadata: {
+          fileName: file.name,
+          mimeType: file.type,
+          size: file.size,
+        },
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleProgramSubmit = async (e) => {
     e.preventDefault();
-    if (!newProgram.title || !newProgram.code || !newProgram.price) {
+    if (!programForm.title || !programForm.price) {
       return toast.error('Please fill required fields');
     }
     setIsSubmitting(true);
     try {
-      await portalService.createProgram({
-        ...newProgram,
-        code: newProgram.code.toUpperCase(),
-        branches: newProgram.branches.length ? newProgram.branches : branches.map((b) => b._id),
-      });
-      toast.success('New program added to catalogue!');
-      setShowCreateModal(false);
+      const payload = {
+        ...programForm,
+        branches: programForm.branches.length ? programForm.branches : branches.map((b) => b._id),
+      };
+      if (editingProgramId) {
+        await portalService.updateProgram(editingProgramId, payload);
+        toast.success('Program updated successfully!');
+      } else {
+        await portalService.createProgram(payload);
+        toast.success('New program added to catalogue!');
+      }
+      setShowProgramModal(false);
       fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create program');
+      toast.error(err.response?.data?.message || 'Failed to save program');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const handleDeleteClick = async (prog) => {
+    setProgramToDelete(prog);
+    try {
+      const res = await portalService.checkProgramDependencies(prog._id);
+      setDeleteDependencies(res.data);
+      setShowDeleteModal(true);
+    } catch (err) {
+      toast.error('Failed to check dependencies');
+    }
+  };
+
+  const confirmDelete = async (archiveOnly) => {
+    if (!programToDelete) return;
+    setIsDeleting(true);
+    try {
+      if (archiveOnly) {
+        await portalService.deleteProgram(programToDelete._id, true);
+        toast.success('Program successfully archived.');
+      } else {
+        await portalService.deleteProgram(programToDelete._id);
+        toast.success('Program permanently deleted.');
+      }
+      setShowDeleteModal(false);
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete/archive program');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
 
   const filteredPrograms = programs.filter(
     (p) =>
@@ -199,7 +305,7 @@ export default function ProgramCatalogue() {
           </div>
           {hasPermission('portal:programs:manage') && (
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={handleOpenCreate}
               className="inline-flex items-center gap-2 rounded-xl bg-tide px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-tide-dark"
             >
               <Plus className="h-4 w-4" /> Add New Program
@@ -220,30 +326,9 @@ export default function ProgramCatalogue() {
             />
           </div>
 
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="rounded-xl border border-slate-200 py-2 px-3 text-sm focus:border-tide focus:outline-none focus:ring-1 focus:ring-tide"
-          >
-            <option value="">All Categories</option>
-            <option value="Fishing Essentials">Fishing Essentials</option>
-            <option value="Offshore & Deep Sea">Offshore & Deep Sea</option>
-            <option value="Kayak & Boating">Kayak & Boating</option>
-            <option value="Junior Angler">Junior Angler</option>
-            <option value="Spearfishing & Diving">Spearfishing & Diving</option>
-          </select>
+          
 
-          <select
-            value={selectedLevel}
-            onChange={(e) => setSelectedLevel(e.target.value)}
-            className="rounded-xl border border-slate-200 py-2 px-3 text-sm focus:border-tide focus:outline-none focus:ring-1 focus:ring-tide"
-          >
-            <option value="">All Skill Levels</option>
-            <option value="Beginner">Beginner</option>
-            <option value="Intermediate">Intermediate</option>
-            <option value="Advanced">Advanced</option>
-            <option value="Master">Master</option>
-          </select>
+          
 
           <select
             value={selectedBranch}
@@ -278,32 +363,44 @@ export default function ProgramCatalogue() {
                 className="group flex flex-col justify-between rounded-2xl bg-white p-6 shadow-sm border border-slate-100 transition duration-200 hover:-translate-y-1 hover:shadow-md"
               >
                 <div>
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1 rounded-lg bg-tide/10 px-2.5 py-1 text-xs font-semibold text-tide">
-                      {prog.category}
-                    </span>
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{prog.code}</span>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    {prog.brochureUrl ? (
+                      <a href={prog.brochureUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="inline-flex items-center gap-1 rounded-lg bg-marine/10 px-2.5 py-1 text-xs font-semibold text-marine hover:bg-marine/20 transition">
+                        <FileText className="h-3.5 w-3.5" /> View Brochure
+                      </a>
+                    ) : (
+                      <span className="inline-block rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-500">No brochure</span>
+                    )}
+                    <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+                      <span className={`inline-block w-3 h-3 rounded-full ${prog.calendarColor === 'Red' ? 'bg-red-500' : prog.calendarColor === 'Blue' ? 'bg-blue-500' : prog.calendarColor === 'Green' ? 'bg-emerald-500' : prog.calendarColor === 'Orange' ? 'bg-orange-500' : prog.calendarColor === 'Yellow' ? 'bg-yellow-500' : prog.calendarColor === 'Pink' ? 'bg-pink-500' : prog.calendarColor === 'Purple' ? 'bg-purple-500' : 'bg-slate-500'}`} title={prog.calendarColor}></span>
+                      {hasPermission('portal:programs:manage') && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button onClick={(e) => { e.stopPropagation(); handleOpenEdit(prog); }} className="p-1 text-slate-400 hover:text-marine transition" title="Edit Program">
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); handleDeleteClick(prog); }} className="p-1 text-slate-400 hover:text-red-500 transition" title="Delete / Archive Program">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  <h3 className="mt-3 font-display text-lg font-bold text-marine group-hover:text-tide transition">
+                  <h3 className="mt-3 font-display text-lg font-bold text-marine group-hover:text-tide transition leading-tight">
                     {prog.title}
                   </h3>
                   <p className="mt-2 text-xs leading-relaxed text-slate-500 line-clamp-3">{prog.description}</p>
 
                   <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-slate-50 p-3 text-xs">
                     <div className="flex items-center gap-1.5 text-slate-600">
-                      <Award className="h-4 w-4 text-tide" />
-                      <span>{prog.level}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-slate-600">
                       <Users className="h-4 w-4 text-tide" />
                       <span>{prog.ageGroup}</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-slate-600">
                       <Calendar className="h-4 w-4 text-tide" />
-                      <span>{prog.durationWeeks} Weeks ({prog.sessionsCount || 8} sessions)</span>
+                      <span>{prog.durationWeeks} Weeks - {prog.durationHours ? prog.durationHours : (prog.durationMinutes ? prog.durationMinutes / 60 : 1)} hour(s)/session</span>
                     </div>
-                    <div className="flex items-center gap-1.5 font-semibold text-marine">
+                    <div className="col-span-2 flex items-center gap-1.5 font-semibold text-marine">
                       <DollarSign className="h-4 w-4 text-tide" />
                       <span>{formatAED(prog.price)}</span>
                     </div>
@@ -323,16 +420,20 @@ export default function ProgramCatalogue() {
                       <span className="inline-flex items-center gap-1 text-emerald-600">
                         <CheckCircle2 className="h-3.5 w-3.5" /> Enrolling Open
                       </span>
+                    ) : prog.status === 'inactive' ? (
+                      <span className="text-slate-400">Archived</span>
                     ) : (
-                      <span className="text-amber-600">Upcoming</span>
+                      <span className="text-amber-600">Upcoming (Draft)</span>
                     )}
                   </span>
-                  <button
-                    onClick={() => handleOpenBooking(prog)}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-marine px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-marine-dark"
-                  >
-                    Book Session <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
+                  {prog.status === 'active' && (
+                    <button
+                      onClick={() => handleOpenBooking(prog)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-marine px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-marine-dark"
+                    >
+                      Book Session <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -521,85 +622,15 @@ export default function ProgramCatalogue() {
                     </div>
                   </div>
 
-                  {/* Online Payment Form */}
-                  <form onSubmit={handlePaymentSubmit} className="space-y-4 rounded-2xl bg-white p-4 border border-tide/20 shadow-xs">
-                    <div className="flex items-center gap-2 text-marine font-bold text-sm">
-                      <CreditCard className="h-4 w-4 text-tide" />
-                      <span>Online Payment Gateway (Step 6)</span>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600">Payment Method</label>
-                      <div className="mt-1 grid grid-cols-3 gap-2">
-                        {['Credit Card', 'PayPal', 'Stripe'].map((method) => (
-                          <button
-                            key={method}
-                            type="button"
-                            onClick={() => setPaymentMethod(method)}
-                            className={`rounded-xl py-2 text-xs font-bold border transition ${
-                              paymentMethod === method
-                                ? 'border-tide bg-tide/10 text-tide'
-                                : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                            }`}
-                          >
-                            {method}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600">Cardholder Name</label>
-                      <input
-                        type="text"
-                        required
-                        value={cardHolder}
-                        onChange={(e) => setCardHolder(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-200 p-2 text-xs focus:border-tide focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="col-span-2">
-                        <label className="block text-[11px] font-semibold text-slate-600">Card Number</label>
-                        <input
-                          type="text"
-                          required
-                          value={cardNumber}
-                          onChange={(e) => setCardNumber(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-slate-200 p-2 text-xs font-mono focus:border-tide focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-600">CVV</label>
-                        <input
-                          type="text"
-                          required
-                          value={cardCvv}
-                          onChange={(e) => setCardCvv(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-slate-200 p-2 text-xs font-mono focus:border-tide focus:outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex justify-end gap-3 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => setBookingStep('form')}
-                        className="rounded-xl px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100"
-                      >
-                        Back
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-1.5"
-                      >
-                        <ShieldCheck className="h-4 w-4" />
-                        {isSubmitting ? 'Processing Payment...' : `Pay Now (${formatAED(generatedInvoice.totalAmount)})`}
-                      </button>
-                    </div>
-                  </form>
+                                    {/* Online Payment Form */}
+                  <div className="mt-4">
+                    <OnlineCheckoutModal
+                      invoice={generatedInvoice}
+                      onClose={() => setBookingStep('form')}
+                      onSuccess={() => setBookingStep('confirmation')}
+                      customReturnUrl={window.location.origin + '/bookings?payment_success=true'}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -685,145 +716,235 @@ export default function ProgramCatalogue() {
           </div>
         )}
 
-        {/* Create Program Modal */}
-        {showCreateModal && (
+        {/* Create/Edit Program Modal */}
+        {showProgramModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-marine-dark/40 backdrop-blur-sm p-4">
             <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                <h2 className="font-display text-lg font-bold text-marine">Create New Program</h2>
-                <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600">
+                <h2 className="font-display text-lg font-bold text-marine">{editingProgramId ? 'Edit Program' : 'Create New Program'}</h2>
+                <button onClick={() => setShowProgramModal(false)} className="text-slate-400 hover:text-slate-600">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleCreateProgramSubmit} className="mt-4 space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700">Program Title *</label>
-                    <input
-                      type="text"
-                      required
-                      value={newProgram.title}
-                      onChange={(e) => setNewProgram({ ...newProgram, title: e.target.value })}
-                      placeholder="E.g., Spearfishing Safety 101"
-                      className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700">Program Code *</label>
-                    <input
-                      type="text"
-                      required
-                      value={newProgram.code}
-                      onChange={(e) => setNewProgram({ ...newProgram, code: e.target.value })}
-                      placeholder="PROG-SPEAR"
-                      className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none uppercase"
-                    />
-                  </div>
-                </div>
+              <form onSubmit={handleProgramSubmit} className="mt-4 space-y-4">
+  <div>
+    <label className="block text-xs font-semibold text-slate-700">Program Title *</label>
+    <input
+      type="text"
+      required
+      value={programForm.title}
+      onChange={(e) => setProgramForm({ ...programForm, title: e.target.value })}
+      placeholder="E.g., Spearfishing Safety 101"
+      className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
+    />
+  </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700">Category</label>
-                    <select
-                      value={newProgram.category}
-                      onChange={(e) => setNewProgram({ ...newProgram, category: e.target.value })}
-                      className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
-                    >
-                      <option value="Fishing Essentials">Fishing Essentials</option>
-                      <option value="Offshore & Deep Sea">Offshore & Deep Sea</option>
-                      <option value="Kayak & Boating">Kayak & Boating</option>
-                      <option value="Junior Angler">Junior Angler</option>
-                      <option value="Spearfishing & Diving">Spearfishing & Diving</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700">Skill Level</label>
-                    <select
-                      value={newProgram.level}
-                      onChange={(e) => setNewProgram({ ...newProgram, level: e.target.value })}
-                      className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
-                    >
-                      <option value="Beginner">Beginner</option>
-                      <option value="Intermediate">Intermediate</option>
-                      <option value="Advanced">Advanced</option>
-                      <option value="Master">Master</option>
-                    </select>
-                  </div>
-                </div>
+  <div className="grid grid-cols-2 gap-3">
+    <div>
+      <label className="block text-xs font-semibold text-slate-700">Price (AED) *</label>
+      <input
+        type="number"
+        required
+        value={programForm.price}
+        onChange={(e) => setProgramForm({ ...programForm, price: Number(e.target.value) })}
+        className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
+      />
+    </div>
+    <div>
+      <label className="block text-xs font-semibold text-slate-700">Program Colour</label>
+      <select
+        value={programForm.calendarColor}
+        onChange={(e) => setProgramForm({ ...programForm, calendarColor: e.target.value })}
+        className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none bg-white"
+      >
+        <option value="Red">Red</option>
+        <option value="Blue">Blue</option>
+        <option value="Green">Green</option>
+        <option value="Orange">Orange</option>
+        <option value="Yellow">Yellow</option>
+        <option value="Pink">Pink</option>
+        <option value="Purple">Purple</option>
+      </select>
+    </div>
+  </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700">Price (AED) *</label>
-                    <input
-                      type="number"
-                      required
-                      value={newProgram.price}
-                      onChange={(e) => setNewProgram({ ...newProgram, price: Number(e.target.value) })}
-                      className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700">Duration (Weeks)</label>
-                    <input
-                      type="number"
-                      value={newProgram.durationWeeks}
-                      onChange={(e) => setNewProgram({ ...newProgram, durationWeeks: Number(e.target.value) })}
-                      className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
-                    />
-                  </div>
-                </div>
+  <div className="grid grid-cols-2 gap-3">
+    <div>
+      <label className="block text-xs font-semibold text-slate-700">Duration (Weeks)</label>
+      <input
+        type="number"
+        value={programForm.durationWeeks}
+        onChange={(e) => setProgramForm({ ...programForm, durationWeeks: Number(e.target.value) })}
+        className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
+      />
+    </div>
+    <div>
+      <label className="block text-xs font-semibold text-slate-700">Session Duration (Hours) *</label>
+      <input
+        type="number"
+        step="0.5"
+        min="0.5"
+        required
+        value={programForm.durationHours}
+        onChange={(e) => setProgramForm({ ...programForm, durationHours: Number(e.target.value) })}
+        className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
+      />
+    </div>
+  </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700">Calendar Card Color Theme</label>
-                  <select
-                    value={newProgram.calendarColor}
-                    onChange={(e) => setNewProgram({ ...newProgram, calendarColor: e.target.value })}
-                    className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none font-semibold"
-                  >
-                    <option value="blue">Blue (Fishing Essentials / Standard)</option>
-                    <option value="emerald">Emerald (Offshore & Deep Sea)</option>
-                    <option value="teal">Teal (Kayak & Boating)</option>
-                    <option value="rose">Rose (Junior & Youth Angler)</option>
-                    <option value="amber">Amber (Custom & Private)</option>
-                    <option value="purple">Purple (Spearfishing & Diving)</option>
-                    <option value="indigo">Indigo (Master Class)</option>
-                  </select>
-                </div>
+  <div className="grid grid-cols-2 gap-3">
+    <div>
+      <label className="block text-xs font-semibold text-slate-700">Status</label>
+      <select
+        value={programForm.status}
+        onChange={(e) => setProgramForm({ ...programForm, status: e.target.value })}
+        className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none bg-white"
+      >
+        <option value="active">Active (Enrolling Open)</option>
+        <option value="inactive">Inactive (Archived)</option>
+        <option value="draft">Draft (Upcoming)</option>
+      </select>
+    </div>
+    <div>
+      <label className="block text-xs font-semibold text-slate-700">Program Brochure (Image)</label>
+      <input
+        type="file"
+        accept="image/jpeg, image/png, image/webp"
+        onChange={handleBrochureUpload}
+        className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:border-tide focus:outline-none file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-tide/10 file:text-tide hover:file:bg-tide/20"
+      />
+      {programForm.brochureMetadata?.fileName && (
+        <p className="text-[10px] text-slate-500 mt-1 truncate">
+          {programForm.brochureMetadata.fileName}
+        </p>
+      )}
+    </div>
+  </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700">Description</label>
-                  <textarea
-                    rows={3}
-                    required
-                    value={newProgram.description}
-                    onChange={(e) => setNewProgram({ ...newProgram, description: e.target.value })}
-                    placeholder="Provide course overview and highlights..."
-                    className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
-                  ></textarea>
-                </div>
+  <div>
+    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Available Branches</label>
+    <div className="flex flex-wrap gap-2">
+      {branches.map((b) => {
+        const isSelected = programForm.branches?.includes(b._id);
+        return (
+          <label
+            key={b._id}
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition select-none ${
+              isSelected
+                ? 'border-tide bg-tide/10 text-marine font-bold'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={(e) => {
+                const current = programForm.branches || [];
+                const nextBranches = e.target.checked
+                  ? [...current, b._id]
+                  : current.filter((id) => id !== b._id);
+                setProgramForm({ ...programForm, branches: nextBranches });
+              }}
+              className="rounded text-tide focus:ring-tide h-3.5 w-3.5"
+            />
+            <span>{b.name}</span>
+          </label>
+        );
+      })}
+    </div>
+  </div>
 
-                <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="rounded-xl bg-tide px-5 py-2 text-sm font-semibold text-white hover:bg-tide-dark disabled:opacity-50"
-                  >
-                    {isSubmitting ? 'Saving...' : 'Save Program'}
-                  </button>
-                </div>
-              </form>
+  <div>
+    <label className="block text-xs font-semibold text-slate-700">Description</label>
+    <textarea
+      rows={3}
+      required
+      value={programForm.description}
+      onChange={(e) => setProgramForm({ ...programForm, description: e.target.value })}
+      placeholder="Provide course overview and highlights..."
+      className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none"
+    ></textarea>
+  </div>
+
+  <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
+    <button
+      type="button"
+      onClick={() => setShowProgramModal(false)}
+      className="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+    >
+      Cancel
+    </button>
+    <button
+      type="submit"
+      disabled={isSubmitting}
+      className="rounded-xl bg-tide px-5 py-2 text-sm font-semibold text-white hover:bg-tide-dark disabled:opacity-50"
+    >
+      {isSubmitting ? 'Saving...' : 'Save Program'}
+    </button>
+  </div>
+</form>
             </div>
           </div>
         )}
       </div>
+    
+        {/* Delete / Archive Confirmation Modal */}
+        {showDeleteModal && programToDelete && deleteDependencies && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-marine-dark/40 backdrop-blur-sm p-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+              <h3 className="font-display text-lg font-bold text-marine mb-2">
+                {deleteDependencies.hasDependencies ? 'Program In Use' : 'Delete Program'}
+              </h3>
+              
+              <div className="mb-6 text-sm text-slate-600 space-y-3">
+                {deleteDependencies.hasDependencies ? (
+                  <>
+                    <p className="text-amber-600 font-medium">This Program is already used in existing records.</p>
+                    <p>It cannot be permanently deleted. Archive it instead?</p>
+                    <ul className="mt-2 text-xs list-disc pl-5 text-slate-500">
+                      {deleteDependencies.details.bookings > 0 && <li>{deleteDependencies.details.bookings} Bookings</li>}
+                      {deleteDependencies.details.schedules > 0 && <li>{deleteDependencies.details.schedules} Sessions</li>}
+                      {deleteDependencies.details.invoices > 0 && <li>{deleteDependencies.details.invoices} Invoices</li>}
+                      {deleteDependencies.details.events > 0 && <li>{deleteDependencies.details.events} Calendar Events</li>}
+                    </ul>
+                  </>
+                ) : (
+                  <p>Are you sure you want to permanently delete <strong>{programToDelete.title}</strong>? This action cannot be undone.</p>
+                )}
+              </div>
+              
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={isDeleting}
+                  className="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                {deleteDependencies.hasDependencies ? (
+                  <button
+                    onClick={() => confirmDelete(true)}
+                    disabled={isDeleting}
+                    className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-bold text-white hover:bg-amber-600 disabled:opacity-50"
+                  >
+                    {isDeleting ? 'Archiving...' : 'Archive Program'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => confirmDelete(false)}
+                    disabled={isDeleting}
+                    className="rounded-xl bg-red-500 px-4 py-2 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-50"
+                  >
+                    {isDeleting ? 'Deleting...' : 'Permanently Delete'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
     </DashboardLayout>
   );
 }

@@ -14,9 +14,7 @@ import CalendarWeekView from '../../components/crm/CalendarWeekView';
 import CalendarDayView from '../../components/crm/CalendarDayView';
 import CalendarListView from '../../components/crm/CalendarListView';
 import CalendarEventDetailPanel from '../../components/crm/CalendarEventDetailPanel';
-import SubjectManagementModal from '../../components/crm/SubjectManagementModal';
 import calendarService from '../../services/calendarService';
-import subjectService from '../../services/subjectService';
 import {
   CALENDAR_STATUS_STYLES,
   CALENDAR_TYPE_STYLES,
@@ -86,14 +84,12 @@ export default function CalendarPage() {
   const [events, setEvents] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [locations, setLocations] = useState([]);
-  const [subjects, setSubjects] = useState([]);
 
   // Top Filters
   const [staffFilter, setStaffFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
 
   // Extended Filter Panel State
-  const [subjectFilter, setSubjectFilter] = useState('');
   const [eventTypeFilter, setEventTypeFilter] = useState('');
   const [publishedFilter, setPublishedFilter] = useState('');
   const [capacityFilter, setCapacityFilter] = useState('');
@@ -101,7 +97,6 @@ export default function CalendarPage() {
 
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
-  const [manageSubjectsOpen, setManageSubjectsOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [detailEvent, setDetailEvent] = useState(null);
@@ -164,7 +159,6 @@ export default function CalendarPage() {
         end: toKey(rangeEnd),
         ...(staffFilter ? { staff: staffFilter } : {}),
         ...(locationFilter ? { location: locationFilter } : {}),
-        ...(subjectFilter ? { subject: subjectFilter } : {}),
         ...(eventTypeFilter ? { eventType: eventTypeFilter } : {}),
         ...(publishedFilter ? { publishedStatus: publishedFilter } : {}),
         ...(capacityFilter ? { capacity: capacityFilter } : {}),
@@ -175,14 +169,13 @@ export default function CalendarPage() {
     } finally {
       setLoading(false);
     }
-  }, [rangeStart, rangeEnd, staffFilter, locationFilter, subjectFilter, eventTypeFilter, publishedFilter, capacityFilter]);
+  }, [rangeStart, rangeEnd, staffFilter, locationFilter, eventTypeFilter, publishedFilter, capacityFilter]);
 
   useEffect(() => { loadEvents(); }, [loadEvents]);
 
   useEffect(() => {
     calendarService.getTeacherOptions().then(({ data }) => setTeachers(data.data)).catch(() => {});
     calendarService.getLocationOptions().then(({ data }) => setLocations(data.data)).catch(() => {});
-    calendarService.getSubjectOptions().then(({ data }) => setSubjects(data.data)).catch(() => {});
   }, []);
 
   const eventsByDay = useMemo(() => {
@@ -263,7 +256,7 @@ export default function CalendarPage() {
     setSelectedDay(now);
   };
 
-  const activeFilterCount = [subjectFilter, eventTypeFilter, publishedFilter, capacityFilter].filter(Boolean).length;
+  const activeFilterCount = [eventTypeFilter, publishedFilter, capacityFilter].filter(Boolean).length;
 
   return (
     <DashboardLayout title="Calendar & Class Schedule">
@@ -366,19 +359,6 @@ export default function CalendarPage() {
             ))}
           </div>
 
-          {/* Manage Subjects Button */}
-          {canCreate && (
-            <button
-              type="button"
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-marine shadow-xs transition"
-              onClick={() => setManageSubjectsOpen(true)}
-              title="Manage Subjects and Default Durations"
-            >
-              <BookOpen className="h-3.5 w-3.5 text-tide" />
-              Subjects
-            </button>
-          )}
-
           {/* Action Button: Add New Event */}
           {canCreate && (
             <button className="btn-primary flex items-center gap-1.5 !py-2 !px-3 text-xs font-bold shadow-sm" onClick={() => openAddModal(selectedDay)}>
@@ -400,7 +380,6 @@ export default function CalendarPage() {
               <button
                 className="text-xs font-semibold text-tide hover:text-tide-dark"
                 onClick={() => {
-                  setSubjectFilter('');
                   setEventTypeFilter('');
                   setPublishedFilter('');
                   setCapacityFilter('');
@@ -413,17 +392,6 @@ export default function CalendarPage() {
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-4">
             <div>
-              <label className="label-field !text-[11px]">Subject / Category</label>
-              <select
-                className="input-field !py-1.5 text-xs"
-                value={subjectFilter}
-                onChange={(e) => setSubjectFilter(e.target.value)}
-              >
-                <option value="">All Subjects</option>
-                {subjects.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
             </div>
 
             <div>
@@ -565,18 +533,18 @@ export default function CalendarPage() {
                               </div>
 
                               {/* Row 2: Program Title */}
-                              <p className="font-display text-[11.5px] font-bold leading-snug mt-1 text-marine line-clamp-2">
+                              <p className="font-display text-xs text-slate-900 font-bold leading-snug mt-1 text-marine line-clamp-2">
                                 {ev.title || ev.programDetails?.title}
                               </p>
 
                               {/* Row 3: Program Category & Level */}
-                              <p className="text-[10px] font-semibold text-slate-700 opacity-90 leading-tight mt-0.5 truncate">
-                                {ev.programDetails?.category || ev.subject || 'Class'}
+                              <p className="text-[11px] font-bold text-slate-800 leading-tight mt-0.5 truncate">
+                                {ev.programDetails?.category || 'Class'}
                                 {ev.programDetails?.level ? ` • ${ev.programDetails.level}` : ''}
                               </p>
 
                               {/* Row 4: Coach & Location */}
-                              <div className="mt-1 space-y-0.5 text-[10px] text-slate-700">
+                              <div className="mt-1 space-y-0.5 text-[11px] font-semibold text-slate-800">
                                 {staffNames && (
                                   <div className="flex items-center gap-1 font-semibold truncate">
                                     <User className="h-3 w-3 text-tide shrink-0" />
@@ -584,7 +552,7 @@ export default function CalendarPage() {
                                   </div>
                                 )}
                                 {(ev.location || ev.branch?.name) && (
-                                  <div className="flex items-center gap-1 font-medium opacity-85 truncate">
+                                  <div className="flex items-center gap-1 font-bold truncate">
                                     <MapPin className="h-3 w-3 text-sandbar-dark shrink-0" />
                                     <span className="truncate">{ev.location || ev.branch?.name}</span>
                                   </div>
@@ -669,7 +637,6 @@ export default function CalendarPage() {
         editingEvent={editingEvent}
         teachers={teachers}
         locations={locations}
-        subjects={subjects}
       />
 
       {/* Right-Side Slide Drawer for Event Detail & Student Registration */}
@@ -693,15 +660,6 @@ export default function CalendarPage() {
         confirmLabel="Remove"
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
-      />
-
-      {/* Subject & Duration Management Modal */}
-      <SubjectManagementModal
-        open={manageSubjectsOpen}
-        onClose={() => setManageSubjectsOpen(false)}
-        onSubjectsChanged={() => {
-          calendarService.getSubjectOptions().then(({ data }) => setSubjects(data.data || [])).catch(() => {});
-        }}
       />
     </DashboardLayout>
   );

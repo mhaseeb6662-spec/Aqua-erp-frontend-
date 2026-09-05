@@ -53,7 +53,7 @@ export default function OperationsAnalytics() {
               Operations, Fleet &amp; Logistics Analytics
             </h1>
             <p className="text-xs text-slate-500">
-              Field operational delivery, charter vessel readiness, academy fishing tackle inventory, and maritime safety incidents.
+              Field operational delivery, charter boat readiness, academy fishing tackle inventory, and maritime safety incidents.
             </p>
           </div>
         </div>
@@ -97,8 +97,8 @@ export default function OperationsAnalytics() {
             kpiId="KPI-FLEET-01"
             icon={Ship}
             iconBg="bg-teal-50 text-teal-600"
-            details={`${summary?.readyVessels || 0} of ${summary?.totalVessels || 0} vessels sea-ready`}
-            onDrilldown={() => setDrilldownModal({ isOpen: true, metricType: 'fleet', title: 'Fleet Vessels Inventory' })}
+            details={`${summary?.readyVessels || 0} of ${summary?.totalVessels || 0} boats sea-ready`}
+            onDrilldown={() => setDrilldownModal({ isOpen: true, metricType: 'fleet', title: 'Boat Inventory' })}
           />
 
           <KpiCard
@@ -125,7 +125,7 @@ export default function OperationsAnalytics() {
                   </div>
                   <h3 className="font-bold text-sm text-marine">Registered Academy Fleet</h3>
                 </div>
-                <span className="text-[10px] uppercase font-bold text-slate-600">Vessel Status</span>
+                <span className="text-[10px] uppercase font-bold text-slate-600">Boat Status</span>
               </div>
 
               {isLoading ? (
@@ -133,7 +133,7 @@ export default function OperationsAnalytics() {
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-marine border-t-transparent"></div>
                 </div>
               ) : !data?.vesselsList || data.vesselsList.length === 0 ? (
-                <p className="text-xs text-slate-500 py-8 text-center font-medium">No fleet vessels registered.</p>
+                <p className="text-xs text-slate-500 py-8 text-center font-medium">No boats registered.</p>
               ) : (
                 <div className="space-y-2.5">
                   {data.vesselsList.map((v) => (

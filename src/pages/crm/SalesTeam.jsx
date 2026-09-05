@@ -55,7 +55,7 @@ export default function SalesTeam() {
                 </div>
                 <div className="rounded-lg bg-mist p-2.5">
                   <p className="text-lg font-bold text-marine">{m.stats?.customers ?? '—'}</p>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">Customers</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">Students</p>
                 </div>
                 <div className="rounded-lg bg-mist p-2.5">
                   <p className="text-lg font-bold text-marine">{m.stats?.conversionRate != null ? `${m.stats.conversionRate}%` : '—'}</p>
@@ -94,7 +94,7 @@ export default function SalesTeam() {
         <div className="card flex items-center gap-4">
           <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700"><TrendingUp className="h-5.5 w-5.5" /></span>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Total customers won</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Total students won</p>
             <p className="mt-0.5 text-2xl font-bold text-marine">
               {team.reduce((sum, m) => sum + (m.stats?.customers || 0), 0) || '—'}
             </p>

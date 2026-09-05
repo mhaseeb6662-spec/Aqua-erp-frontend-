@@ -119,7 +119,7 @@ export default function App() {
         <Route path="/customers" element={<ProtectedRoute permission="crm:customers:view"><Customers /></ProtectedRoute>} />
         <Route path="/customers/:id" element={<ProtectedRoute permission="crm:customers:view"><CustomerDetail /></ProtectedRoute>} />
         <Route path="/sales-team" element={<ProtectedRoute permission={['crm:sales-team:view', 'crm:leads:assign', 'crm:leads:view']}><SalesTeam /></ProtectedRoute>} />
-        <Route path="/sales-performance" element={<ProtectedRoute permission="crm:performance:view"><SalesPerformance /></ProtectedRoute>} />
+        <Route path="/sales-performance" element={<Navigate to="/management/sales" replace />} />
         <Route path="/calendar" element={<ProtectedRoute permission={['crm:calendar:view', 'portal:schedule:view']}><CalendarPage /></ProtectedRoute>} />
 
         {/* 3. Coach Portal */}
@@ -149,7 +149,7 @@ export default function App() {
         {/* 6. Management Command Center */}
         <Route path="/management/dashboard" element={<ProtectedRoute permission="core:reports:view"><ManagementDashboard /></ProtectedRoute>} />
         <Route path="/management/revenue" element={<ProtectedRoute permission="core:reports:view"><RevenueAnalytics /></ProtectedRoute>} />
-        <Route path="/management/sales" element={<ProtectedRoute permission="core:reports:view"><SalesAnalytics /></ProtectedRoute>} />
+        <Route path="/management/sales" element={<ProtectedRoute permission={['core:reports:view', 'crm:performance:view']}><SalesAnalytics /></ProtectedRoute>} />
         <Route path="/management/operations" element={<ProtectedRoute permission="core:reports:view"><OperationsAnalytics /></ProtectedRoute>} />
         <Route path="/management/staff" element={<ProtectedRoute permission="core:reports:view"><StaffCoachPerformance /></ProtectedRoute>} />
         <Route path="/management/branches" element={<ProtectedRoute permission="core:reports:view"><BranchPerformance /></ProtectedRoute>} />

@@ -59,9 +59,9 @@ export default function CustomerDetail() {
   if (!customer) return <DashboardLayout title="Customer"><p className="text-sm text-ink/50">Customer not found.</p></DashboardLayout>;
 
   return (
-    <DashboardLayout title="Customer detail">
+    <DashboardLayout title="Student profile">
       <button onClick={() => navigate('/customers')} className="mb-5 flex items-center gap-1.5 text-sm font-medium text-ink/50 hover:text-tide">
-        <ArrowLeft className="h-4 w-4" /> Back to customers
+        <ArrowLeft className="h-4 w-4" /> Back to students
       </button>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -80,7 +80,7 @@ export default function CustomerDetail() {
                 <span className="font-medium text-marine">{customer.assignedTo?.fullName || '—'}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wide text-ink/40">Customer since</span>
+                <span className="text-xs font-semibold uppercase tracking-wide text-ink/40">Student since</span>
                 <span className="font-medium text-marine">
                   {customer.convertedAt ? new Date(customer.convertedAt).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '—'}
                 </span>
@@ -179,7 +179,7 @@ export default function CustomerDetail() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h3 className="text-base font-semibold text-marine">Activity timeline</h3>
-                <p className="text-xs text-ink/50">Complete interaction history for this customer.</p>
+                <p className="text-xs text-ink/50">Complete interaction history for this student.</p>
               </div>
               {hasPermission('crm:activities:create') && (
                 <button className="btn-secondary !py-2 !px-3 text-xs" onClick={() => setLogOpen(true)}>

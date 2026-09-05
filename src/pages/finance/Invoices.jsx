@@ -10,10 +10,11 @@ import PaymentEvidenceModal from './PaymentEvidenceModal';
 import toast from 'react-hot-toast';
 import { formatAED } from '../../utils/currency';
 import {
-  FileText, Plus, Search, Filter, Printer, Send, CreditCard, DollarSign, CheckCircle2, AlertCircle, Clock, X, ShieldAlert, Image
+  FileText, Plus, Search, Filter, Printer, Download, Send, CreditCard, DollarSign, CheckCircle2, AlertCircle, Clock, X, ShieldAlert, Image
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import AcademyLogo from '../../components/common/AcademyLogo';
+import html2pdf from 'html2pdf.js';
 
 export default function Invoices() {
   const { user, hasPermission } = useAuth();
@@ -141,6 +142,32 @@ export default function Invoices() {
   const handlePayOnline = (inv) => {
     setSelectedInvoice(inv);
     setShowCheckoutModal(true);
+  };
+
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    if (!selectedInvoice) return;
+    const element = document.getElementById('printable-invoice');
+    if (!element) return;
+    
+    setIsDownloading(true);
+    try {
+      const opt = {
+        margin:       [0.5, 0.5, 0.5, 0.5],
+        filename:     `invoice-${selectedInvoice.invoiceNumber}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+      };
+      
+      await html2pdf().set(opt).from(element).save();
+    } catch (err) {
+      console.error('PDF Generation Error:', err);
+      toast.error('Unable to generate invoice PDF. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const handlePrint = () => {
@@ -343,23 +370,35 @@ export default function Invoices() {
         {showDetailModal && selectedInvoice && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-marine-dark/40 backdrop-blur-sm p-4">
             <div className="w-full max-w-2xl rounded-2xl bg-white p-8 shadow-xl max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 no-print">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4 no-print flex-wrap gap-3">
                 <h2 className="font-display text-lg font-bold text-marine">Invoice Preview</h2>
-                <div className="flex items-center gap-2 no-print">
+                <div className="flex items-center gap-2 no-print flex-wrap">
+                  <button
+                    onClick={handleDownloadPDF}
+                    disabled={isDownloading}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 no-print disabled:opacity-50 transition"
+                  >
+                    {isDownloading ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-700 border-t-transparent"></div>
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    {isDownloading ? 'Downloading...' : 'Download PDF'}
+                  </button>
                   <button
                     onClick={handlePrint}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-tide px-3.5 py-2 text-xs font-bold text-white hover:bg-tide-dark no-print"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-tide px-3.5 py-2 text-xs font-bold text-white hover:bg-tide-dark no-print transition"
                   >
                     <Printer className="h-4 w-4" /> Print Invoice
                   </button>
-                  <button onClick={() => setShowDetailModal(false)} className="text-slate-400 hover:text-slate-600 no-print">
+                  <button onClick={() => setShowDetailModal(false)} className="text-slate-400 hover:text-slate-600 no-print ml-2">
                     <X className="h-5 w-5" />
                   </button>
                 </div>
               </div>
 
               {/* Printable Invoice Sheet matching user image template */}
-              <div className="printable-document mt-6 p-8 bg-white text-slate-800 font-sans leading-relaxed border border-slate-200 rounded-xl">
+              <div id="printable-invoice" className="printable-document mt-6 p-8 bg-white text-slate-800 font-sans leading-relaxed border border-slate-200 rounded-xl">
                 {/* Header */}
                 <div className="flex justify-between items-start pb-8">
                   <div>

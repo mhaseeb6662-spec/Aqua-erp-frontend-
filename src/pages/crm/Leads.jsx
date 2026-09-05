@@ -25,6 +25,9 @@ export default function Leads() {
   const [search, setSearch] = useState('');
   const [source, setSource] = useState('');
   const [stage, setStage] = useState('');
+  const [datePeriod, setDatePeriod] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [dateSort, setDateSort] = useState('newest'); // 'newest' | 'oldest' | 'recent_update' | 'least_recent_update'
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState({ totalPages: 1, total: 0 });
@@ -60,6 +63,9 @@ export default function Leads() {
         stage,
         sortBy,
         sortOrder,
+        datePeriod,
+        startDate,
+        endDate
       });
 
       const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
@@ -104,6 +110,9 @@ export default function Leads() {
         sortOrder,
         page,
         limit: 10,
+        datePeriod,
+        startDate,
+        endDate
       });
       setLeads(data.data);
       setMeta(data.meta);
@@ -112,7 +121,7 @@ export default function Leads() {
     } finally {
       setLoading(false);
     }
-  }, [search, source, stage, dateSort, page]);
+  }, [search, source, stage, dateSort, page, datePeriod, startDate, endDate]);
 
   const loadSalesTeam = useCallback(async () => {
     if (!hasPermission('crm:leads:assign') && !hasPermission('crm:sales-team:view')) {
@@ -161,6 +170,21 @@ export default function Leads() {
             <option value="">All stages</option>
             {PIPELINE_STAGES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
+          <select className="input-field w-auto" value={datePeriod} onChange={(e) => { setDatePeriod(e.target.value); setPage(1); }}>
+            <option value="">All Time</option>
+            <option value="Daily">Daily</option>
+            <option value="Weekly">Weekly</option>
+            <option value="Monthly">Monthly</option>
+            <option value="Yearly">Yearly</option>
+            <option value="Custom">Custom</option>
+          </select>
+          {datePeriod === 'Custom' && (
+            <div className="flex items-center gap-2">
+              <input type="date" className="input-field w-auto text-xs" value={startDate} onChange={(e) => { setStartDate(e.target.value); setPage(1); }} />
+              <span className="text-slate-400">-</span>
+              <input type="date" className="input-field w-auto text-xs" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPage(1); }} />
+            </div>
+          )}
 
           {/* Sort by Date Control */}
           <div className="flex items-center gap-1.5 bg-white border border-marine/[0.12] rounded-xl px-3 py-2 text-xs font-medium text-slate-700 shadow-2xs hover:border-tide transition-colors">
@@ -264,9 +288,9 @@ export default function Leads() {
                         )}
                         {hasPermission('crm:leads:convert') && l.stage !== 'won' && l.stage !== 'lost' && (
                           <button
-                            className="rounded-lg p-2 text-ink/40 hover:bg-sandbar/10 hover:text-sandbar-dark"
-                            title="Convert to customer"
-                            onClick={() => setConvertTarget(l)}
+                            className="rounded-lg p-2 text-ink/40 hover:bg-emerald-50 hover:text-emerald-600"
+                            title="Convert to student"
+                            onClick={(e) => { e.stopPropagation(); setConvertTarget(l); }}
                           >
                             <Sparkles className="h-4 w-4" />
                           </button>

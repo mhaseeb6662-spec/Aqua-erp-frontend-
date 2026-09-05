@@ -4,18 +4,21 @@ import ManagementFilterBar from '../../components/management/ManagementFilterBar
 import KpiCard from '../../components/management/KpiCard';
 import DrilldownModal from '../../components/management/DrilldownModal';
 import managementService from '../../services/managementService';
+import salesPerformanceService from '../../services/salesPerformanceService';
 import toast from 'react-hot-toast';
 import {
   Users, TrendingUp, UserCheck, Target,
   Share2, Award, ArrowUpRight, BarChart2, Filter
 } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
+import CustomerRevenueSearch from '../../components/management/CustomerRevenueSearch';
 
 export default function SalesAnalytics() {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [filters, setFilters] = useState({
-    range: 'this_month',
+    range: 'all',
     branchId: '',
     programId: '',
     startDate: '',
@@ -23,15 +26,22 @@ export default function SalesAnalytics() {
   });
 
   const [drilldownModal, setDrilldownModal] = useState({ isOpen: false, metricType: '', title: '' });
+  const [revenueByRep, setRevenueByRep] = useState([]);
 
   const fetchSales = async () => {
     setIsLoading(true);
+    setHasError(false);
     try {
-      const res = await managementService.getSales(filters);
+      const [res, repRes] = await Promise.all([
+        managementService.getSales(filters),
+        salesPerformanceService.getByRep(filters)
+      ]);
       setData(res.data.data);
+      setRevenueByRep(repRes.data.data);
     } catch (err) {
       console.error('Failed to load sales analytics', err);
-      toast.error('Failed to load sales analytics');
+      setHasError(true);
+      toast.error('Unable to load pipeline analytics');
     } finally {
       setIsLoading(false);
     }
@@ -42,6 +52,7 @@ export default function SalesAnalytics() {
   }, [filters]);
 
   const summary = data?.summary;
+  const totalPipelineCount = (data?.leadsByStage || []).reduce((sum, st) => sum + (st.count || 0), 0) || summary?.totalLeads || 0;
 
   return (
     <DashboardLayout>
@@ -53,7 +64,7 @@ export default function SalesAnalytics() {
               Sales Pipeline &amp; Commercial Analytics
             </h1>
             <p className="text-xs text-slate-500">
-              Commercial performance, inbound lead acquisition channels, conversion rates, and sales team league tables.
+              Commercial performance, inbound lead acquisition channels, conversion rates, and active pipeline stage telemetry.
             </p>
           </div>
         </div>
@@ -66,12 +77,27 @@ export default function SalesAnalytics() {
           isLoading={isLoading}
         />
 
-        {/* Top Funnel KPI Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {hasError ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm font-semibold text-red-700 flex flex-col items-center justify-center text-center space-y-3">
+            <span>Unable to load Sales Performance for the selected date range.</span>
+            <button
+              onClick={fetchSales}
+              className="px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition"
+            >
+              Retry
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Customer Revenue Search */}
+            <CustomerRevenueSearch filters={filters} />
+
+            {/* Top Funnel KPI Cards */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard
             title="Total Inbound Leads"
             value={summary?.totalLeads || 0}
-            unit="Inquiries"
+            unit="Leads"
             kpiId="KPI-LEAD-01"
             icon={Users}
             iconBg="bg-blue-50 text-blue-600"
@@ -104,11 +130,11 @@ export default function SalesAnalytics() {
           <KpiCard
             title="Active In Pipeline"
             value={summary?.inPipeline || 0}
-            unit="In Negotiation"
+            unit="In Follow-Up"
             kpiId="KPI-PIPE-01"
             icon={Target}
             iconBg="bg-amber-50 text-amber-600"
-            details="Currently in sales follow-up"
+            details="Currently active open stages"
             onDrilldown={() => setDrilldownModal({ isOpen: true, metricType: 'leads', title: 'Active Pipeline Leads' })}
           />
         </div>
@@ -133,7 +159,7 @@ export default function SalesAnalytics() {
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-marine border-t-transparent"></div>
                 </div>
               ) : !data?.leadsBySource || data.leadsBySource.length === 0 ? (
-                <p className="text-xs text-slate-500 py-8 text-center font-medium">No source attribution data in period.</p>
+                <p className="text-xs text-slate-500 py-8 text-center font-medium">No source attribution data in selected period.</p>
               ) : (
                 <div className="space-y-3">
                   {data.leadsBySource.map((s) => {
@@ -169,7 +195,7 @@ export default function SalesAnalytics() {
                   </div>
                   <h3 className="font-bold text-sm text-marine">Pipeline Stage Distribution</h3>
                 </div>
-                <span className="text-[10px] uppercase font-bold text-slate-600">CRM Stages</span>
+                <span className="text-[10px] uppercase font-bold text-slate-600">All Active Stages ({totalPipelineCount} Total)</span>
               </div>
 
               {isLoading ? (
@@ -177,15 +203,15 @@ export default function SalesAnalytics() {
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-marine border-t-transparent"></div>
                 </div>
               ) : !data?.leadsByStage || data.leadsByStage.length === 0 ? (
-                <p className="text-xs text-slate-500 py-8 text-center font-medium">No stage distribution recorded.</p>
+                <p className="text-xs text-slate-500 py-8 text-center font-medium">No stage distribution recorded for selected period.</p>
               ) : (
                 <div className="space-y-3">
                   {data.leadsByStage.map((st) => {
-                    const percent = summary?.totalLeads > 0 ? Math.round((st.count / summary.totalLeads) * 100) : 0;
+                    const percent = totalPipelineCount > 0 ? Math.round((st.count / totalPipelineCount) * 100) : 0;
                     return (
                       <div key={st.stage} className="space-y-1.5">
                         <div className="flex justify-between text-xs">
-                          <span className="font-bold text-marine capitalize">{st.stage}</span>
+                          <span className="font-bold text-marine">{st.stageName || st.stage}</span>
                           <span className="font-mono font-bold text-slate-700">{st.count} ({percent}%)</span>
                         </div>
                         <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
@@ -221,33 +247,41 @@ export default function SalesAnalytics() {
                     <th className="pb-2.5 font-bold">Email</th>
                     <th className="pb-2.5 font-bold text-center">Assigned Leads</th>
                     <th className="pb-2.5 font-bold text-center">Won Enrolments</th>
+                    <th className="pb-2.5 font-bold text-right">Revenue Generated</th>
                     <th className="pb-2.5 font-bold text-right">Conversion Rate</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {(data?.salesReps || []).map((rep, idx) => (
-                    <tr key={rep.repId || idx} className="hover:bg-slate-50/80 transition">
-                      <td className="py-2.5 font-bold text-marine flex items-center gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-marine text-[10px] font-bold text-white">
-                          {idx + 1}
-                        </span>
-                        <span>{rep.name}</span>
-                      </td>
-                      <td className="py-2.5 text-slate-500">{rep.email}</td>
-                      <td className="py-2.5 text-center font-mono font-bold text-slate-700">{rep.totalAssigned}</td>
-                      <td className="py-2.5 text-center font-mono font-bold text-emerald-600">{rep.wonCount}</td>
-                      <td className="py-2.5 text-right font-mono font-bold text-marine">
-                        <span className="inline-block px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
-                          {rep.conversionRate}%
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {(data?.salesReps || []).map((rep, idx) => {
+                    const repRev = revenueByRep.find((r) => r._id === rep.repId);
+                    const revenueStr = repRev?.revenue ? new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED' }).format(repRev.revenue) : 'AED 0.00';
+                    return (
+                      <tr key={rep.repId || idx} className="hover:bg-slate-50/80 transition">
+                        <td className="py-2.5 font-bold text-marine flex items-center gap-2">
+                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-marine text-[10px] font-bold text-white">
+                            {idx + 1}
+                          </span>
+                          <span>{rep.name}</span>
+                        </td>
+                        <td className="py-2.5 text-slate-500">{rep.email}</td>
+                        <td className="py-2.5 text-center font-mono font-bold text-slate-700">{rep.totalAssigned}</td>
+                        <td className="py-2.5 text-center font-mono font-bold text-emerald-600">{rep.wonCount}</td>
+                        <td className="py-2.5 text-right font-mono font-bold text-slate-700">{revenueStr}</td>
+                        <td className="py-2.5 text-right font-mono font-bold text-marine">
+                          <span className="inline-block px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                            {rep.conversionRate}%
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           </CardContent>
         </Card>
+      </>
+      )}
       </div>
 
       {/* Drilldown Modal */}

@@ -24,21 +24,20 @@ export default function FleetManagement() {
   const [formData, setFormData] = useState({
     name: '',
     registrationNumber: '',
-    vesselType: 'Speedboat',
+    boatSize: 'Small',
+    photoUrl: '',
+    photoMetadata: { fileName: '', fileSize: 0, mimeType: '' },
     capacity: 8,
     branch: '',
     operationalStatus: 'Available',
-    readinessStatus: 'Ready',
+    
     location: ''
   });
 
-  const vesselTypes = [
-    'Speedboat',
-    'Yacht',
-    'Catamaran',
-    'Fishing Dinghy',
-    'Offshore Cruiser',
-    'Traditional Dhow'
+  const boatSizes = [
+    'Small',
+    'Medium',
+    'Large'
   ];
 
   const fetchVessels = async () => {
@@ -73,11 +72,13 @@ export default function FleetManagement() {
     setFormData({
       name: '',
       registrationNumber: '',
-      vesselType: 'Speedboat',
+      boatSize: 'Small',
+    photoUrl: '',
+    photoMetadata: { fileName: '', fileSize: 0, mimeType: '' },
       capacity: 8,
       branch: branches[0]?._id || '',
       operationalStatus: 'Available',
-      readinessStatus: 'Ready',
+      
       location: ''
     });
     setIsAddModalOpen(true);
@@ -88,20 +89,49 @@ export default function FleetManagement() {
     setFormData({
       name: vessel.name || '',
       registrationNumber: vessel.registrationNumber || '',
-      vesselType: vessel.vesselType || 'Speedboat',
+      boatSize: vessel.boatSize || vessel.vesselType || 'Small',
+      photoUrl: vessel.photoUrl || '',
+      photoMetadata: vessel.photoMetadata || { fileName: '', fileSize: 0, mimeType: '' },
       capacity: vessel.capacity || 8,
       branch: vessel.branch?._id || vessel.branch || '',
       operationalStatus: vessel.operationalStatus || 'Available',
-      readinessStatus: vessel.readinessStatus || 'Ready',
+      
       location: vessel.location || ''
     });
     setIsAddModalOpen(true);
   };
 
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      return toast.error('Please upload an image file (JPG, PNG, WebP).');
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      return toast.error('Image size must be less than 5MB.');
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setFormData(prev => ({
+        ...prev,
+        photoUrl: event.target.result,
+        photoMetadata: {
+          fileName: file.name,
+          fileSize: file.size,
+          mimeType: file.type,
+          uploadedAt: new Date()
+        }
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.registrationNumber.trim()) {
-      toast.error('Please enter vessel name and registration number');
+      toast.error('Please enter boat name and registration number');
       return;
     }
 
@@ -110,20 +140,22 @@ export default function FleetManagement() {
       const payload = {
         name: formData.name.trim(),
         registrationNumber: formData.registrationNumber.trim().toUpperCase(),
-        vesselType: formData.vesselType,
+        vesselType: formData.boatSize,
+      photoUrl: formData.photoUrl,
+      photoMetadata: formData.photoMetadata,
         capacity: Number(formData.capacity) || 8,
         branch: formData.branch || null,
         operationalStatus: formData.operationalStatus,
-        readinessStatus: formData.readinessStatus,
+        
         location: formData.location.trim()
       };
 
       if (editingVessel) {
         await api.put(`/operations/vessels/${editingVessel._id}`, payload);
-        toast.success('Vessel updated successfully!');
+        toast.success('Boat updated successfully!');
       } else {
         await api.post('/operations/vessels', payload);
-        toast.success('Vessel added to fleet successfully!');
+        toast.success('Boat added successfully!');
       }
 
       setIsAddModalOpen(false);
@@ -137,14 +169,14 @@ export default function FleetManagement() {
   };
 
   const handleDelete = async (id, name) => {
-    if (!window.confirm(`Are you sure you want to remove vessel "${name}" from the fleet?`)) return;
+    if (!window.confirm(`Are you sure you want to remove boat "${name}" from the fleet?`)) return;
     
     try {
       await api.delete(`/operations/vessels/${id}`);
-      toast.success('Vessel removed from fleet');
+      toast.success('Boat removed');
       setVessels(prev => prev.filter(v => v._id !== id));
     } catch (err) {
-      toast.error('Failed to delete vessel');
+      toast.error('Failed to delete boat');
     }
   };
 
@@ -153,9 +185,9 @@ export default function FleetManagement() {
     try {
       await api.put(`/operations/vessels/${vessel._id}`, {
         operationalStatus: newStatus,
-        readinessStatus: newStatus === 'Available' ? 'Ready' : 'Not Ready'
+        
       });
-      toast.success(`Vessel marked as ${newStatus}`);
+      toast.success(`Boat marked as ${newStatus}`);
       fetchVessels();
     } catch (err) {
       toast.error('Failed to update status');
@@ -175,19 +207,19 @@ export default function FleetManagement() {
   const totalCapacity = vessels.reduce((acc, v) => acc + (v.capacity || 0), 0);
 
   return (
-    <DashboardLayout title="Fleet Management">
+    <DashboardLayout title="Boat Management">
       <div className="space-y-6 animate-in fade-in duration-300">
         {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-marine">Fleet & Vessel Management</h1>
-          <p className="text-sm text-slate-500">Manage academy boats, maritime readiness, maintenance cycles, and passenger capacities.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-marine">Boat Management</h1>
+          <p className="text-sm text-slate-500">Manage academy boats, maintenance cycles, and passenger capacities.</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
             onClick={fetchVessels}
             className="p-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition"
-            title="Refresh Fleet"
+            title="Refresh Boats"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
@@ -195,7 +227,7 @@ export default function FleetManagement() {
             onClick={handleOpenAddModal}
             className="inline-flex items-center gap-2 bg-marine text-white px-4 py-2.5 rounded-xl font-semibold text-sm hover:bg-marine/90 transition shadow-sm"
           >
-            <Plus className="h-4 w-4" /> Add Vessel
+            <Plus className="h-4 w-4" /> Add Boat
           </button>
         </div>
       </div>
@@ -208,8 +240,8 @@ export default function FleetManagement() {
               <Ship className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Fleet</p>
-              <h3 className="text-2xl font-bold text-marine mt-0.5">{vessels.length} <span className="text-xs font-normal text-slate-500">vessels</span></h3>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Boats</p>
+              <h3 className="text-2xl font-bold text-marine mt-0.5">{vessels.length} <span className="text-xs font-normal text-slate-500">boats</span></h3>
             </div>
           </CardContent>
         </Card>
@@ -220,8 +252,8 @@ export default function FleetManagement() {
               <CheckCircle2 className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Operational & Ready</p>
-              <h3 className="text-2xl font-bold text-emerald-600 mt-0.5">{readyCount} <span className="text-xs font-normal text-slate-500">vessels</span></h3>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Operational</p>
+              <h3 className="text-2xl font-bold text-emerald-600 mt-0.5">{readyCount} <span className="text-xs font-normal text-slate-500">boats</span></h3>
             </div>
           </CardContent>
         </Card>
@@ -233,7 +265,7 @@ export default function FleetManagement() {
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">In Maintenance</p>
-              <h3 className="text-2xl font-bold text-amber-600 mt-0.5">{maintenanceCount} <span className="text-xs font-normal text-slate-500">vessels</span></h3>
+              <h3 className="text-2xl font-bold text-amber-600 mt-0.5">{maintenanceCount} <span className="text-xs font-normal text-slate-500">boats</span></h3>
             </div>
           </CardContent>
         </Card>
@@ -261,7 +293,7 @@ export default function FleetManagement() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search vessel or reg #..."
+            placeholder="Search boat or reg #..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-marine"
@@ -278,17 +310,17 @@ export default function FleetManagement() {
       ) : filteredVessels.length === 0 ? (
         <div className="py-16 text-center bg-white border-2 border-dashed border-slate-200 rounded-2xl p-6">
           <Ship className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-marine">No vessels found</h3>
+          <h3 className="text-base font-bold text-marine">No boats found</h3>
           <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
             {searchTerm || statusFilter !== 'All' 
-              ? 'No vessels match your search or filter criteria.' 
-              : 'Your fleet inventory is currently empty. Add your first boat to start managing vessels.'}
+              ? 'No boats match your search or filter criteria.' 
+              : 'Your fleet inventory is currently empty. Add your first boat to start managing boats.'}
           </p>
           <button
             onClick={handleOpenAddModal}
             className="mt-4 inline-flex items-center gap-2 bg-marine text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-marine/90 transition"
           >
-            <Plus className="h-3.5 w-3.5" /> Add First Vessel
+            <Plus className="h-3.5 w-3.5" /> Add First Boat
           </button>
         </div>
       ) : (
@@ -298,13 +330,21 @@ export default function FleetManagement() {
               <CardContent className="p-5 space-y-4">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
-                    <div className={`p-2.5 rounded-xl ${
-                      vessel.operationalStatus === 'Available' 
-                        ? 'bg-blue-50 text-blue-600' 
-                        : 'bg-amber-50 text-amber-600'
-                    }`}>
-                      <Anchor className="h-5 w-5" />
-                    </div>
+                    {vessel.photoUrl ? (
+                      <img 
+                        src={vessel.photoUrl} 
+                        alt={vessel.name} 
+                        className="w-10 h-10 object-cover rounded-xl border border-slate-200"
+                      />
+                    ) : (
+                      <div className={`p-2.5 rounded-xl ${
+                        vessel.operationalStatus === 'Available' 
+                          ? 'bg-blue-50 text-blue-600' 
+                          : 'bg-amber-50 text-amber-600'
+                      }`}>
+                        <Anchor className="h-5 w-5" />
+                      </div>
+                    )}
                     <div>
                       <h3 className="font-bold text-marine text-sm">{vessel.name}</h3>
                       <p className="text-xs text-slate-400 font-mono mt-0.5">{vessel.registrationNumber}</p>
@@ -315,14 +355,14 @@ export default function FleetManagement() {
                     <button
                       onClick={() => handleOpenEditModal(vessel)}
                       className="p-1.5 text-slate-400 hover:text-marine hover:bg-slate-50 rounded-lg transition"
-                      title="Edit Vessel"
+                      title="Edit Boat"
                     >
                       <Edit3 className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={() => handleDelete(vessel._id, vessel.name)}
                       className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                      title="Delete Vessel"
+                      title="Delete Boat"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -331,8 +371,8 @@ export default function FleetManagement() {
 
                 <div className="space-y-2 text-xs text-slate-600 pt-2 border-t border-slate-100">
                   <div className="flex justify-between">
-                    <span>Vessel Type:</span>
-                    <strong className="text-marine">{vessel.vesselType || 'Speedboat'}</strong>
+                    <span>Boat Size:</span>
+                    <strong className="text-marine">{vessel.vesselType || 'Small'}</strong>
                   </div>
                   <div className="flex justify-between">
                     <span>Passenger Capacity:</span>
@@ -341,15 +381,8 @@ export default function FleetManagement() {
                   <div className="flex justify-between">
                     <span>Primary Branch:</span>
                     <strong className="text-marine">{vessel.branch?.name || 'All Branches'}</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Readiness:</span>
-                    <span className={`font-semibold ${
-                      vessel.readinessStatus === 'Ready' ? 'text-emerald-600' : 'text-amber-600'
-                    }`}>
-                      {vessel.readinessStatus || 'Ready'}
-                    </span>
-                  </div>
+                </div>
+
                 </div>
 
                 {/* Status Badge & Action */}
@@ -381,13 +414,13 @@ export default function FleetManagement() {
         </div>
       )}
 
-      {/* Add / Edit Vessel Modal */}
+      {/* Add / Edit Boat Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-lg text-marine">
-                {editingVessel ? 'Edit Vessel' : 'Add New Vessel to Fleet'}
+                {editingVessel ? 'Edit Boat' : 'Add New Boat'}
               </h3>
               <button 
                 onClick={() => setIsAddModalOpen(false)}
@@ -400,7 +433,7 @@ export default function FleetManagement() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                  Vessel Name *
+                  Boat Name *
                 </label>
                 <input
                   type="text"
@@ -429,14 +462,14 @@ export default function FleetManagement() {
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                    Vessel Type
+                    Boat Size
                   </label>
                   <select
-                    value={formData.vesselType}
+                    value={formData.boatSize}
                     onChange={(e) => setFormData({ ...formData, vesselType: e.target.value })}
                     className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:border-marine focus:outline-none bg-white"
                   >
-                    {vesselTypes.map(t => (
+                    {boatSizes.map(t => (
                       <option key={t} value={t}>{t}</option>
                     ))}
                   </select>
@@ -460,7 +493,7 @@ export default function FleetManagement() {
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                    Home Branch
+                    Branch
                   </label>
                   <select
                     value={formData.branch}
@@ -493,16 +526,19 @@ export default function FleetManagement() {
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                    Readiness Status
+                    Boat Photo
                   </label>
-                  <select
-                    value={formData.readinessStatus}
-                    onChange={(e) => setFormData({ ...formData, readinessStatus: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:border-marine focus:outline-none bg-white"
-                  >
-                    <option value="Ready">Ready for Trips</option>
-                    <option value="Not Ready">Not Ready</option>
-                  </select>
+                  <input
+                    type="file"
+                    accept="image/jpeg, image/png, image/webp"
+                    onChange={handlePhotoChange}
+                    className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:border-marine focus:outline-none file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-marine/10 file:text-marine hover:file:bg-marine/20"
+                  />
+                  {formData.photoMetadata?.fileName && (
+                    <p className="text-[10px] text-slate-500 mt-1 truncate">
+                      {formData.photoMetadata.fileName}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -519,7 +555,7 @@ export default function FleetManagement() {
                   disabled={isSubmitting}
                   className="flex-1 py-2.5 bg-marine text-white rounded-xl text-xs font-semibold hover:bg-marine/90 transition shadow-sm disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Saving...' : editingVessel ? 'Save Changes' : 'Add Vessel'}
+                  {isSubmitting ? 'Saving...' : editingVessel ? 'Save Changes' : 'Add Boat'}
                 </button>
               </div>
             </form>

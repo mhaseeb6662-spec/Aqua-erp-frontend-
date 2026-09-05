@@ -13,8 +13,8 @@ export default function StudentMigrationModal({ onClose, onSuccess }) {
   const fileInputRef = useRef(null);
 
   const sampleCsvContent = `fullName,legacyStudentId,email,phone,dateOfBirth,gender,skillLevel,branchName,programName,parentName,parentEmail,parentPhone,emergencyContactName,emergencyContactPhone,medicalNotes
-Tariq Al-Mansoor,STU-LEG-1001,tariq.mansoor@example.com,+971501112233,2010-05-14,Male,Intermediate,Dubai Marina,Junior Angler,Sultan Al-Mansoor,sultan.mansoor@example.com,+971509998877,Sultan Al-Mansoor,+971509998877,No known allergies
-Layla Al-Hashimi,STU-LEG-1002,layla.hashimi@example.com,+971502223344,2012-08-22,Female,Beginner,Deep Blue Pier,Kayak Stealth,Mariam Al-Hashimi,mariam.hashimi@example.com,+971508887766,Mariam Al-Hashimi,+971508887766,Asthma inhaler carried`;
+Tariq Al-Mansoor,STU-LEG-1001,tariq.mansoor@example.com,+971501112233,2010-05-14,Male,Intermediate,Dubai,Junior Angler,Sultan Al-Mansoor,sultan.mansoor@example.com,+971509998877,Sultan Al-Mansoor,+971509998877,No known allergies
+Layla Al-Hashimi,STU-LEG-1002,layla.hashimi@example.com,+971502223344,2012-08-22,Female,Beginner,Fujairah,Kayak Stealth,Mariam Al-Hashimi,mariam.hashimi@example.com,+971508887766,Mariam Al-Hashimi,+971508887766,Asthma inhaler carried`;
 
   const downloadSampleCsv = () => {
     const blob = new Blob([sampleCsvContent], { type: 'text/csv;charset=utf-8;' });

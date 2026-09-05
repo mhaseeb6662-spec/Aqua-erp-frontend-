@@ -1,4 +1,4 @@
-import { Clock, MapPin, User, BookOpen, Users, Sparkles, CreditCard } from 'lucide-react';
+import { Clock, MapPin, User, BookOpen, Users, Sparkles, CreditCard, Ship, Bus } from 'lucide-react';
 import { CALENDAR_STATUS_STYLES, CALENDAR_TYPE_STYLES, getProgramTheme, FINANCIAL_STATUS_BADGE_STYLES } from '../../constants/crm';
 
 export default function CalendarListView({ events = [], onEventClick }) {
@@ -80,7 +80,7 @@ export default function CalendarListView({ events = [], onEventClick }) {
 
                 <td className="whitespace-nowrap px-5 py-4">
                   <span className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs ${theme.pill}`}>
-                    {ev.programDetails?.category || ev.subject || 'Class'}
+                    {ev.programDetails?.category || 'Class'}
                     {ev.programDetails?.level ? ` • ${ev.programDetails.level}` : ''}
                   </span>
                 </td>
@@ -97,10 +97,25 @@ export default function CalendarListView({ events = [], onEventClick }) {
                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-tide-dark">
                       <Sparkles className="h-3.5 w-3.5 text-tide" /> Online
                     </span>
-                  ) : (ev.location || ev.branch?.name) ? (
+                  ) : (ev.venue === 'Boat' || ev.boat || ev.vessel) ? (
+                    <div className="flex items-center gap-1 text-xs text-slate-700 font-medium">
+                      <Ship className="h-3.5 w-3.5 text-sky-600 shrink-0" />
+                      <span>Boat: <strong>{ev.boat?.name || ev.vessel?.name || 'Boat'}</strong></span>
+                      {ev.transportationRequired && (
+                        <span className="ml-1.5 inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60" title="Transportation Required">
+                          <Bus className="h-2.5 w-2.5" />
+                        </span>
+                      )}
+                    </div>
+                  ) : (ev.branch?.name || ev.location) ? (
                     <div className="flex items-center gap-1 text-xs text-slate-700 font-medium">
                       <MapPin className="h-3.5 w-3.5 text-sandbar-dark shrink-0" />
-                      <span>{ev.location || ev.branch?.name}</span>
+                      <span>{ev.branch?.name || ev.location}</span>
+                      {ev.transportationRequired && (
+                        <span className="ml-1.5 inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60" title="Transportation Required">
+                          <Bus className="h-2.5 w-2.5" />
+                        </span>
+                      )}
                     </div>
                   ) : (
                     <span className="text-xs text-slate-400">—</span>

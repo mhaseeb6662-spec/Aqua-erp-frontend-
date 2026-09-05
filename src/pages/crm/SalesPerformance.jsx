@@ -3,6 +3,7 @@ import { TrendingUp, Users, Target, DollarSign } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Loader from '../../components/common/Loader';
+import ManagementFilterBar from '../../components/management/ManagementFilterBar';
 import salesPerformanceService from '../../services/salesPerformanceService';
 import { formatAED } from '../../utils/currency';
 import { PIPELINE_STAGES, STAGE_STYLES } from '../../constants/crm';
@@ -30,45 +31,71 @@ export default function SalesPerformance() {
   const [bySource, setBySource] = useState([]);
   const [byStage, setByStage] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [range, setRange] = useState('30d');
+  const [hasError, setHasError] = useState(false);
+  const [filters, setFilters] = useState({
+    range: 'all',
+    startDate: '',
+    endDate: ''
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
+    setHasError(false);
     try {
+      const queryParams = new URLSearchParams(filters).toString();
       const [ov, rep, src, stage] = await Promise.all([
-        salesPerformanceService.getOverview({ range }),
-        salesPerformanceService.getByRep({ range }),
-        salesPerformanceService.getBySource({ range }),
-        salesPerformanceService.getByStage({ range }),
+        salesPerformanceService.getOverview(filters),
+        salesPerformanceService.getByRep(filters),
+        salesPerformanceService.getBySource(filters),
+        salesPerformanceService.getByStage(filters),
       ]);
       setOverview(ov.data.data);
       setByRep(rep.data.data);
       setBySource(src.data.data);
       setByStage(stage.data.data);
     } catch (err) {
-      toast.error('Failed to load sales performance data.');
+      setHasError(true);
+      toast.error('Unable to load pipeline analytics.');
     } finally {
       setLoading(false);
     }
-  }, [range]);
+  }, [filters]);
 
   useEffect(() => { load(); }, [load]);
 
   const maxRepRevenue = Math.max(1, ...byRep.map((r) => r.revenue || 0));
   const maxSourceLeads = Math.max(1, ...bySource.map((s) => s.leadCount || 0));
+  const totalStageCount = byStage.reduce((sum, s) => sum + (s.count || 0), 0);
   const maxStageCount = Math.max(1, ...byStage.map((s) => s.count || 0));
 
   return (
     <DashboardLayout title="Sales Performance">
-      <div className="mb-6 flex items-center justify-between">
-        <p className="text-sm text-ink/50">Conversion, revenue and pipeline health across the sales team.</p>
-        <select className="input-field w-auto" value={range} onChange={(e) => setRange(e.target.value)}>
-          <option value="7d">Last 7 days</option>
-          <option value="30d">Last 30 days</option>
-          <option value="90d">Last quarter</option>
-          <option value="year">This year</option>
-        </select>
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-ink/50">Conversion, revenue and active pipeline health across the sales team.</p>
       </div>
+
+      <div className="mb-6">
+        <ManagementFilterBar
+          filters={filters}
+          onFilterChange={setFilters}
+          onRefresh={load}
+          isLoading={loading}
+          showBranch={false}
+          showProgram={false}
+        />
+      </div>
+
+      {hasError && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-700 flex items-center justify-between">
+          <span>Unable to load sales performance telemetry.</span>
+          <button
+            onClick={load}
+            className="px-3 py-1 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <Loader label="Crunching the numbers..." />
@@ -78,15 +105,15 @@ export default function SalesPerformance() {
             <div className="card flex items-center gap-4">
               <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-tide/10 text-tide"><Users className="h-5.5 w-5.5" /></span>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">New leads</p>
-                <p className="mt-0.5 text-2xl font-bold text-marine">{overview?.newLeads ?? '—'}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Total Leads</p>
+                <p className="mt-0.5 text-2xl font-bold text-marine">{overview?.newLeads ?? 0}</p>
               </div>
             </div>
             <div className="card flex items-center gap-4">
               <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700"><Target className="h-5.5 w-5.5" /></span>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Conversion rate</p>
-                <p className="mt-0.5 text-2xl font-bold text-marine">{overview?.conversionRate != null ? `${overview.conversionRate}%` : '—'}</p>
+                <p className="mt-0.5 text-2xl font-bold text-marine">{overview?.conversionRate != null ? `${overview.conversionRate}%` : '0%'}</p>
               </div>
             </div>
             <div className="card flex items-center gap-4">
@@ -94,7 +121,7 @@ export default function SalesPerformance() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Revenue closed</p>
                 <p className="mt-0.5 text-2xl font-bold text-marine">
-                  {overview?.revenue != null ? formatAED(overview.revenue) : '—'}
+                  {overview?.revenue != null ? formatAED(overview.revenue) : 'AED 0.00'}
                 </p>
               </div>
             </div>
@@ -103,7 +130,7 @@ export default function SalesPerformance() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Avg. deal size</p>
                 <p className="mt-0.5 text-2xl font-bold text-marine">
-                  {overview?.avgDealSize != null ? formatAED(overview.avgDealSize) : '—'}
+                  {overview?.avgDealSize != null ? formatAED(overview.avgDealSize) : 'AED 0.00'}
                 </p>
               </div>
             </div>
@@ -147,18 +174,30 @@ export default function SalesPerformance() {
           </div>
 
           <div className="card mt-6">
-            <h3 className="mb-4 text-base font-semibold text-marine">Pipeline distribution</h3>
-            <div className="flex flex-wrap gap-3">
-              {PIPELINE_STAGES.map((stage) => {
-                const found = byStage.find((s) => s.stage === stage.key);
-                const count = found?.count ?? 0;
-                const pct = maxStageCount > 0 ? Math.round((count / maxStageCount) * 100) : 0;
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-marine">Pipeline Distribution</h3>
+              <span className="text-xs font-bold text-slate-500">
+                {totalStageCount} Active Leads Across All Stages
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+              {(byStage.length > 0 ? byStage : PIPELINE_STAGES).map((st) => {
+                const stageKey = st.stage || st.key;
+                const stageLabel = st.stageName || st.label || stageKey;
+                const count = st.count ?? 0;
+                const pct = totalStageCount > 0 ? Math.round((count / totalStageCount) * 100) : 0;
+                const stageStyle = STAGE_STYLES[stageKey] || 'badge-neutral';
                 return (
-                  <div key={stage.key} className="flex-1 min-w-[120px] rounded-xl border border-marine/[0.06] p-3.5 text-center">
-                    <span className={`badge ${STAGE_STYLES[stage.key]}`}>{stage.label}</span>
-                    <p className="mt-3 text-xl font-bold text-marine">{count}</p>
-                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-marine/[0.06]">
-                      <div className="h-full rounded-full bg-tide" style={{ width: `${pct}%` }} />
+                  <div key={stageKey} className="rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 text-center flex flex-col justify-between">
+                    <div>
+                      <span className={`badge ${stageStyle}`}>{stageLabel}</span>
+                      <p className="mt-3 text-2xl font-bold text-marine font-mono">{count}</p>
+                    </div>
+                    <div className="mt-3">
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                        <div className="h-full rounded-full bg-teal-600 transition-all duration-500" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-[10px] font-semibold text-slate-500 mt-1 block">{pct}% of pipeline</span>
                     </div>
                   </div>
                 );

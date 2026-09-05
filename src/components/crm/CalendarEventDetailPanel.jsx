@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   X, Clock, MapPin, GraduationCap, Search, Trash2, Pencil,
-  CheckCircle2, XCircle, MoreVertical, UserPlus, BookOpen, Sparkles, Users, CreditCard,
+  CheckCircle2, XCircle, MoreVertical, UserPlus, BookOpen, Sparkles, Users, CreditCard, Ship, School, Bus,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import calendarService from '../../services/calendarService';
@@ -120,18 +120,7 @@ export default function CalendarEventDetailPanel({
     }
   };
 
-  const handlePaymentStatusChange = async (regId, paymentStatus) => {
-    setBusyId(regId);
-    try {
-      await calendarService.updatePaymentStatus(event._id, regId, paymentStatus);
-      toast.success(`Payment status updated to ${paymentStatus}`);
-      onChanged();
-    } catch (err) {
-      toast.error('Failed to update payment status.');
-    } finally {
-      setBusyId(null);
-    }
-  };
+
 
   const handleQuickStudentSaved = async (newStudent) => {
     setQuickStudentModalOpen(false);
@@ -160,11 +149,12 @@ export default function CalendarEventDetailPanel({
     : 'Unlimited Seats';
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-marine-dark/40 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="flex h-full w-full max-w-xl animate-rise flex-col overflow-hidden bg-white shadow-pop"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <>
+      <div className="fixed inset-0 z-50 flex justify-end bg-marine-dark/40 backdrop-blur-sm" onClick={onClose}>
+        <div
+          className="flex h-full w-full max-w-xl animate-rise flex-col overflow-hidden bg-white shadow-pop"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Header */}
         <div className="bg-marine px-6 py-4 text-white border-b border-white/10">
           <div className="flex items-start justify-between">
@@ -240,7 +230,7 @@ export default function CalendarEventDetailPanel({
                 <div className="flex flex-wrap items-center gap-2 mb-1.5">
                   <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold ${getProgramTheme(event.programDetails?.calendarColor || 'blue').pill}`}>
                     <BookOpen className="h-3 w-3" />
-                    {event.programDetails?.category || event.subject || 'Class'}
+                    {event.programDetails?.category || 'Class'}
                     {event.programDetails?.level ? ` • ${event.programDetails.level}` : ''}
                   </span>
                   <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] uppercase font-extrabold ${FINANCIAL_STATUS_BADGE_STYLES[event.financialSummary?.aggregateStatus] || FINANCIAL_STATUS_BADGE_STYLES.PENDING}`}>
@@ -307,13 +297,30 @@ export default function CalendarEventDetailPanel({
                 ) : (
                   <>
                     <MapPin className="h-4 w-4 text-amber-700 shrink-0" />
-                    <span className="truncate">{event.location || event.branch?.name || 'Branch location'}</span>
+                    <span className="truncate">Branch: {event.branch?.name || event.location || 'Main Branch'}</span>
                   </>
                 )}
               </div>
               <div className="flex items-center gap-2 font-medium">
                 <Users className="h-4 w-4 text-tide shrink-0" />
                 <span>{capacityLabel}</span>
+              </div>
+              <div className="flex items-center gap-2 font-medium">
+                {event.venue === 'Boat' || event.boat || event.vessel ? (
+                  <>
+                    <Ship className="h-4 w-4 text-sky-600 shrink-0" />
+                    <span className="truncate">Venue: Boat ({event.boat?.name || event.vessel?.name || 'Assigned Boat'})</span>
+                  </>
+                ) : (
+                  <>
+                    <School className="h-4 w-4 text-tide shrink-0" />
+                    <span>Venue: Classroom</span>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-2 font-medium">
+                <Bus className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span>Transportation: {event.transportationRequired || event.transportation ? 'Required' : 'Not Required'}</span>
               </div>
             </div>
 
@@ -452,19 +459,13 @@ export default function CalendarEventDetailPanel({
 
                       {/* Controls Bar: Payment Status & Attendance */}
                       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2 text-xs">
-                        {/* Payment Status Dropdown */}
                         <div className="flex items-center gap-1.5">
                           <CreditCard className="h-3.5 w-3.5 text-slate-500 shrink-0" />
-                          <select
-                            disabled={!canUpdate || busyId === reg._id}
-                            className={`rounded-md border px-2 py-0.5 text-[11px] font-bold ${REGISTRATION_PAYMENT_STYLES[currentPaymentStatus] || 'bg-slate-100 text-slate-800'}`}
-                            value={currentPaymentStatus}
-                            onChange={(e) => handlePaymentStatusChange(reg._id, e.target.value)}
+                          <span
+                            className={`rounded-md border px-2 py-0.5 text-[11px] font-bold ${REGISTRATION_PAYMENT_STYLES[reg.autoPaymentStatus || currentPaymentStatus] || 'bg-slate-100 text-slate-800'}`}
                           >
-                            {REGISTRATION_PAYMENT_STATUSES.map((st) => (
-                              <option key={st} value={st}>{st}</option>
-                            ))}
-                          </select>
+                            {(reg.autoPaymentStatus || currentPaymentStatus).toUpperCase()}
+                          </span>
                         </div>
 
                         {/* Attendance Toggle Buttons */}
@@ -501,6 +502,7 @@ export default function CalendarEventDetailPanel({
             )}
           </div>
         </div>
+        </div>
       </div>
 
       <StudentFormModal
@@ -508,6 +510,6 @@ export default function CalendarEventDetailPanel({
         onClose={() => setQuickStudentModalOpen(false)}
         onSaved={handleQuickStudentSaved}
       />
-    </div>
+    </>
   );
 }

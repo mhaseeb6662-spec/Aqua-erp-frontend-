@@ -33,7 +33,7 @@ export default function IncidentReports() {
     'Safety / Injury',
     'Equipment Damage',
     'Weather / Delay',
-    'Marine / Vessel Issue',
+    'Marine / Boat Issue',
     'Behavioral / Student',
     'Customer Complaint',
     'Other'

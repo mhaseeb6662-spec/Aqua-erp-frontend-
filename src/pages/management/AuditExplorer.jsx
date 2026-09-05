@@ -42,7 +42,15 @@ export default function AuditExplorer() {
     fetchAudit();
   }, [entityType, actionType, page]);
 
-  const entityOptions = ['All Entities', 'Lead', 'Customer', 'Booking', 'Invoice', 'Schedule', 'User'];
+  const entityOptions = [
+    { label: 'All Entities', value: 'All Entities' },
+    { label: 'Lead', value: 'Lead' },
+    { label: 'Student', value: 'Customer' },
+    { label: 'Booking', value: 'Booking' },
+    { label: 'Invoice', value: 'Invoice' },
+    { label: 'Schedule', value: 'Schedule' },
+    { label: 'User', value: 'User' },
+  ];
   const actionOptions = ['All Actions', 'created', 'stage_change', 'assignment', 'note', 'call', 'payment_link'];
 
   const filteredActivities = activities.filter((a) => {
@@ -83,7 +91,7 @@ export default function AuditExplorer() {
               className="w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:bg-white focus:outline-none"
             >
               {entityOptions.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
           </div>

@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
-import { X, CalendarPlus, Search, UserPlus, Check, Sparkles, MapPin, Users, BookOpen, Layers, Clock, Settings2 } from 'lucide-react';
+import { 
+  X, CalendarPlus, Search, UserPlus, Check, Sparkles, MapPin, 
+  Users, BookOpen, Layers, Clock, Settings2, Ship, School, Bus
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import calendarService from '../../services/calendarService';
 import leadService from '../../services/leadService';
 import customerService from '../../services/customerService';
 import portalService from '../../services/portalService';
-import subjectService from '../../services/subjectService';
 import StudentFormModal from './StudentFormModal';
-import SubjectManagementModal from './SubjectManagementModal';
-import { CALENDAR_SUBJECT_OPTIONS } from '../../constants/crm';
 
 function addMinutesToTime(timeStr, minutes) {
   if (!timeStr || !timeStr.includes(':')) return '';
@@ -33,17 +33,18 @@ const emptyForm = {
   eventType: 'one-time',
   program: '',
   branch: '',
-  subject: '',
-  durationMinutes: 60,
+  venue: 'Classroom', // 'Classroom' | 'Boat'
+  boat: '', // Vessel ObjectId if venue === 'Boat'
+  transportationRequired: false,
   title: '',
   classDescription: '',
   internalNotes: '',
   date: '',
   startTime: '',
   endTime: '',
+  teacher: '',
   teachers: [],
   isOnline: false,
-  location: '',
   seatType: 'limited',
   capacity: '10',
   publishedStatus: 'published',
@@ -56,16 +57,13 @@ export default function CalendarEventFormModal({
   defaultDate,
   editingEvent,
   teachers = [],
-  locations = [],
-  subjects = [],
 }) {
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [programsList, setProgramsList] = useState([]);
   const [branchesList, setBranchesList] = useState([]);
-  const [subjectList, setSubjectList] = useState([]);
-  const [manageSubjectsOpen, setManageSubjectsOpen] = useState(false);
+  const [boatsList, setBoatsList] = useState([]);
 
   const [leadQuery, setLeadQuery] = useState('');
   const [leadResults, setLeadResults] = useState([]);
@@ -79,30 +77,21 @@ export default function CalendarEventFormModal({
 
   const [addStudentOpen, setAddStudentOpen] = useState(false);
 
-  const fetchSubjects = async () => {
-    try {
-      const { data } = await subjectService.getSubjects();
-      setSubjectList(data.data || []);
-    } catch {
-      // Fallback
-    }
-  };
-
+  // Load programs, branches, and boats
   useEffect(() => {
-    portalService.getPrograms().then(({ data }) => setProgramsList(data.data || [])).catch(() => {});
-    portalService.getBranches().then(({ data }) => setBranchesList(data.data || [])).catch(() => {});
-    fetchSubjects();
+    portalService.getPrograms({ activeOnly: 'true' })
+      .then(({ data }) => setProgramsList(data.data || []))
+      .catch(() => {});
+    portalService.getBranches()
+      .then(({ data }) => setBranchesList(data.data || []))
+      .catch(() => {});
+    calendarService.getBoats()
+      .then(({ data }) => setBoatsList(data.data || []))
+      .catch(() => {});
   }, []);
-
-  // Compute all available subject names
-  const dynamicSubjectNames = subjectList.map(s => s.name);
-  const allSubjectOptions = Array.from(new Set([...dynamicSubjectNames, ...CALENDAR_SUBJECT_OPTIONS, ...subjects]))
-    .filter(Boolean)
-    .sort();
 
   useEffect(() => {
     if (!open) return;
-    fetchSubjects();
 
     if (editingEvent) {
       const assignedTeacherIds = Array.isArray(editingEvent.teachers) && editingEvent.teachers.length > 0
@@ -111,31 +100,38 @@ export default function CalendarEventFormModal({
         ? [editingEvent.teacher._id ? editingEvent.teacher._id : editingEvent.teacher]
         : [];
 
-      let calcDur = editingEvent.durationMinutes;
-      if (!calcDur && editingEvent.startTime && editingEvent.endTime) {
-        calcDur = calculateMinutesDiff(editingEvent.startTime, editingEvent.endTime);
-      }
+      const primaryTeacherId = assignedTeacherIds[0] || (editingEvent.teacher?._id || editingEvent.teacher || '');
 
       setForm({
         type: editingEvent.type || 'class',
         eventType: editingEvent.eventType || 'one-time',
         program: editingEvent.program?._id || editingEvent.program || '',
         branch: editingEvent.branch?._id || editingEvent.branch || '',
-        subject: editingEvent.subject || '',
-        durationMinutes: calcDur || 60,
+        venue: editingEvent.venue === 'Boat' || editingEvent.vessel || editingEvent.boat ? 'Boat' : 'Classroom',
+        boat: editingEvent.boat?._id || editingEvent.boat || editingEvent.vessel?._id || editingEvent.vessel || '',
+        transportationRequired: Boolean(editingEvent.transportationRequired || editingEvent.transportation),
         title: editingEvent.title || '',
         classDescription: editingEvent.classDescription || '',
         internalNotes: editingEvent.internalNotes || editingEvent.notes || '',
         date: editingEvent.date?.slice(0, 10) || '',
         startTime: editingEvent.startTime || '',
         endTime: editingEvent.endTime || '',
+        teacher: primaryTeacherId,
         teachers: assignedTeacherIds,
         isOnline: Boolean(editingEvent.isOnline),
-        location: editingEvent.location || '',
         seatType: editingEvent.seatType || 'limited',
         capacity: editingEvent.capacity || '10',
         publishedStatus: editingEvent.publishedStatus || 'published',
       });
+
+      if (editingEvent.program && typeof editingEvent.program === 'object') {
+        setProgramsList((prev) => {
+          if (!prev.find((p) => String(p._id) === String(editingEvent.program._id))) {
+            return [...prev, editingEvent.program];
+          }
+          return prev;
+        });
+      }
       setSelectedLead(editingEvent.lead || null);
       setSelectedStudent(editingEvent.student || null);
     } else {
@@ -152,31 +148,14 @@ export default function CalendarEventFormModal({
 
   if (!open) return null;
 
-  // Handle Subject selection and auto-populate default duration
-  const handleSubjectChange = (newSubject) => {
-    const matchedSubject = subjectList.find(
-      (s) => s.name.toLowerCase() === newSubject.toLowerCase()
-    );
-    const defDuration = matchedSubject?.defaultDuration || form.durationMinutes || 60;
-
-    let newEndTime = form.endTime;
-    if (form.startTime) {
-      newEndTime = addMinutesToTime(form.startTime, defDuration);
-    }
-
-    setForm((prev) => ({
-      ...prev,
-      subject: newSubject,
-      durationMinutes: defDuration,
-      endTime: newEndTime,
-    }));
-  };
-
-  // Handle Start Time Change
+  // Handle Start Time Change (auto pre-fills End Time if empty)
   const handleStartTimeChange = (newStartTime) => {
     let newEndTime = form.endTime;
-    if (newStartTime && form.durationMinutes) {
-      newEndTime = addMinutesToTime(newStartTime, form.durationMinutes);
+    if (newStartTime && !newEndTime) {
+      // Find default duration from selected program or default to 60 mins
+      const prog = programsList.find((p) => String(p._id) === String(form.program));
+      const progDuration = prog ? (prog.durationHours || 0) * 60 + (prog.durationMinutes || 0) : 60;
+      newEndTime = addMinutesToTime(newStartTime, progDuration || 60);
     }
     setForm((prev) => ({
       ...prev,
@@ -185,40 +164,24 @@ export default function CalendarEventFormModal({
     }));
   };
 
-  // Handle Duration Change
-  const handleDurationChange = (newDuration) => {
-    const durNum = Number(newDuration);
-    let newEndTime = form.endTime;
-    if (form.startTime && durNum > 0) {
-      newEndTime = addMinutesToTime(form.startTime, durNum);
-    }
-    setForm((prev) => ({
-      ...prev,
-      durationMinutes: durNum,
-      endTime: newEndTime,
-    }));
-  };
-
   // Handle End Time Change
   const handleEndTimeChange = (newEndTime) => {
-    let newDuration = form.durationMinutes;
-    if (form.startTime && newEndTime) {
-      newDuration = calculateMinutesDiff(form.startTime, newEndTime);
-    }
     setForm((prev) => ({
       ...prev,
       endTime: newEndTime,
-      durationMinutes: newDuration,
     }));
   };
 
-  const toggleStaffSelection = (staffId) => {
-    setForm((f) => {
-      const exists = f.teachers.includes(staffId);
-      const updated = exists ? f.teachers.filter((id) => id !== staffId) : [...f.teachers, staffId];
-      return { ...f, teachers: updated };
-    });
-  };
+  // Filter boats by selected Branch
+  const availableBoats = boatsList.filter((b) => {
+    // If branch is selected, match boat branch
+    if (form.branch && b.branch) {
+      const bBranchId = typeof b.branch === 'object' ? b.branch._id : b.branch;
+      if (String(bBranchId) !== String(form.branch)) return false;
+    }
+    // Filter out out-of-service boats
+    return b.operationalStatus !== 'Out of Service';
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -226,22 +189,44 @@ export default function CalendarEventFormModal({
 
     if (!form.date) return setError('Please select an event date.');
     if (!form.startTime) return setError('Please select an event start time.');
+    if (!form.endTime) return setError('Please select an event end time.');
+
+    // Validate End Time > Start Time
+    if (form.startTime && form.endTime && form.endTime <= form.startTime) {
+      return setError('End Time must be after Start Time.');
+    }
+
+    // Validate Venue & Boat
+    if (form.venue === 'Boat' && !form.boat) {
+      return setError('Please select a Boat for this boat-based session.');
+    }
+
     if (form.seatType === 'limited' && (!form.capacity || Number(form.capacity) <= 0)) {
       return setError('Please specify a valid numeric seat capacity for limited seat events.');
     }
 
+    // Compute duration automatically from End Time - Start Time
+    const calculatedDuration = calculateMinutesDiff(form.startTime, form.endTime);
+
     setLoading(true);
     try {
+      const staffList = form.teacher ? [form.teacher] : (form.teachers || []);
+
       const payload = {
         ...form,
-        subject: form.subject || '',
-        durationMinutes: Number(form.durationMinutes) || 60,
-        endTime: form.endTime || (form.startTime ? addMinutesToTime(form.startTime, form.durationMinutes || 60) : ''),
+        durationMinutes: calculatedDuration,
+        venue: form.venue,
+        boat: form.venue === 'Boat' ? form.boat : null,
+        vessel: form.venue === 'Boat' ? form.boat : null,
+        transportationRequired: Boolean(form.transportationRequired),
+        transportation: Boolean(form.transportationRequired),
         lead: form.type === 'demo' ? selectedLead?._id : undefined,
         student: form.type === 'class' ? selectedStudent?._id : undefined,
-        teacher: form.teachers[0] || null,
-        teachers: form.teachers,
-        location: form.isOnline ? '' : form.location || '',
+        teacher: form.teacher || staffList[0] || null,
+        teachers: staffList,
+        location: form.venue === 'Boat' 
+          ? (boatsList.find((b) => String(b._id) === String(form.boat))?.name || 'Boat')
+          : (branchesList.find((b) => String(b._id) === String(form.branch))?.name || 'Classroom'),
         capacity: form.seatType === 'limited' ? Number(form.capacity) : null,
       };
 
@@ -293,7 +278,7 @@ export default function CalendarEventFormModal({
               </div>
             )}
 
-            {/* Section 1: Event Information */}
+            {/* Section 1: Program & Event Type */}
             <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/50 p-4">
               <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-tide-dark">
                 <BookOpen className="h-4 w-4" /> 1. Program &amp; Event Type
@@ -304,17 +289,19 @@ export default function CalendarEventFormModal({
                 <div>
                   <label className="label-field">Link Academy Program (Optional)</label>
                   <select
-                    className="input-field font-semibold text-marine"
+                    className="input-field font-semibold text-marine bg-white"
                     value={form.program}
                     onChange={(e) => {
                       const progId = e.target.value;
                       const picked = programsList.find((p) => String(p._id) === String(progId));
                       if (picked) {
+                        const progDur = (picked.durationHours || 0) * 60 + (picked.durationMinutes || 0) || 60;
+                        const newEnd = form.startTime ? addMinutesToTime(form.startTime, progDur) : form.endTime;
                         setForm((prev) => ({
                           ...prev,
                           program: picked._id,
                           title: prev.title && prev.title !== 'New Class' ? prev.title : picked.title,
-                          subject: picked.category || picked.title,
+                          endTime: newEnd,
                           capacity: String(picked.maxCapacity || 10),
                           seatType: 'limited',
                           classDescription: prev.classDescription || picked.description || '',
@@ -327,7 +314,7 @@ export default function CalendarEventFormModal({
                     <option value="">Custom / No Program Linked</option>
                     {programsList.map((p) => (
                       <option key={p._id} value={p._id}>
-                        {p.title} — {p.category} ({p.level || 'All Levels'})
+                        {p.title}
                       </option>
                     ))}
                   </select>
@@ -335,36 +322,6 @@ export default function CalendarEventFormModal({
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                {/* Subject / Category Dropdown */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="label-field !mb-0">Subject / Category</label>
-                    <button
-                      type="button"
-                      onClick={() => setManageSubjectsOpen(true)}
-                      className="text-[11px] font-bold text-tide hover:text-tide-dark flex items-center gap-1"
-                    >
-                      <Settings2 className="h-3 w-3" /> Manage
-                    </button>
-                  </div>
-                  <select
-                    className="input-field font-semibold"
-                    value={form.subject}
-                    onChange={(e) => handleSubjectChange(e.target.value)}
-                  >
-                    <option value="">Select Subject...</option>
-                    {allSubjectOptions.map((subj) => {
-                      const matched = subjectList.find(s => s.name === subj);
-                      const durLabel = matched ? ` (${matched.defaultDuration}m)` : '';
-                      return (
-                        <option key={subj} value={subj}>
-                          {subj}{durLabel}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-
                 {/* Event Type */}
                 <div>
                   <label className="label-field">Event Type</label>
@@ -403,7 +360,7 @@ export default function CalendarEventFormModal({
               </h4>
 
               <div>
-                <label className="label-field">Event Title</label>
+                <label className="label-field">Event Title *</label>
                 <input
                   required
                   className="input-field"
@@ -436,53 +393,56 @@ export default function CalendarEventFormModal({
               </div>
             </div>
 
-            {/* Section 3: Staff Assignment */}
+            {/* Section 3: Staff Assignment (Dropdown Box) */}
             <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-tide-dark">
-                  3. Staff / Coaches Assignment
+                  3. Staff Assignment
                 </h4>
-                <span className="text-[11px] text-slate-500 font-medium">Assign 1 or multiple staff</span>
+                <span className="text-[11px] text-slate-500 font-medium">Assigned Coach / Instructor</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
-                {teachers.map((t) => {
-                  const isChecked = form.teachers.includes(t._id);
-                  return (
-                    <button
-                      key={t._id}
-                      type="button"
-                      onClick={() => toggleStaffSelection(t._id)}
-                      className={`flex items-center justify-between rounded-lg border px-3 py-2 text-left text-xs font-medium transition-colors ${
-                        isChecked
-                          ? 'border-tide bg-tide/10 text-tide-dark font-bold'
-                          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span className="truncate">{t.fullName}</span>
-                      {isChecked && <Check className="h-4 w-4 text-tide shrink-0 ml-1" />}
-                    </button>
-                  );
-                })}
+              <div>
+                <label className="label-field">Select Staff *</label>
+                <select
+                  required
+                  className="input-field bg-white"
+                  value={form.teacher || (form.teachers && form.teachers[0]) || ''}
+                  onChange={(e) => {
+                    const staffId = e.target.value;
+                    setForm((prev) => ({
+                      ...prev,
+                      teacher: staffId,
+                      teachers: staffId ? [staffId] : [],
+                    }));
+                  }}
+                >
+                  <option value="">Select Staff...</option>
+                  {teachers.map((t) => (
+                    <option key={t._id} value={t._id}>
+                      {t.fullName} {t.role?.name ? `(${t.role.name})` : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            {/* Section 4: Date, Time & Duration */}
+            {/* Section 4: Date & Time Range (Session Duration Removed) */}
             <div className="space-y-4 rounded-xl border border-sky-200 bg-sky-50/40 p-4">
               <div className="flex items-center justify-between">
                 <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-tide-dark">
-                  <Clock className="h-4 w-4 text-tide" /> 4. Date, Time &amp; Duration
+                  <Clock className="h-4 w-4 text-tide" /> 4. Date &amp; Time
                 </h4>
                 {form.startTime && form.endTime && (
                   <span className="text-[11px] font-bold text-sky-800 bg-sky-100/80 px-2 py-0.5 rounded-md">
-                    {form.startTime} – {form.endTime} ({form.durationMinutes} mins)
+                    {form.startTime} – {form.endTime}
                   </span>
                 )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="label-field">Event Date</label>
+                  <label className="label-field">Event Date *</label>
                   <input
                     required
                     type="date"
@@ -492,7 +452,7 @@ export default function CalendarEventFormModal({
                   />
                 </div>
                 <div>
-                  <label className="label-field">Start Time</label>
+                  <label className="label-field">Start Time *</label>
                   <input
                     required
                     type="time"
@@ -502,8 +462,9 @@ export default function CalendarEventFormModal({
                   />
                 </div>
                 <div>
-                  <label className="label-field">End Time</label>
+                  <label className="label-field">End Time *</label>
                   <input
+                    required
                     type="time"
                     className="input-field bg-white font-bold"
                     value={form.endTime}
@@ -511,110 +472,124 @@ export default function CalendarEventFormModal({
                   />
                 </div>
               </div>
-
-              {/* Duration Customization & Presets */}
-              <div className="pt-2 border-t border-sky-200/60">
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-bold text-slate-700">
-                    Session Duration: <span className="text-tide-dark font-extrabold">{form.durationMinutes} minutes</span>
-                  </label>
-                  <span className="text-[10px] text-slate-500">Auto-calculated or custom override</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 flex gap-1 overflow-x-auto pb-1">
-                    {[30, 45, 60, 75, 90, 120, 180].map((dur) => (
-                      <button
-                        key={dur}
-                        type="button"
-                        onClick={() => handleDurationChange(dur)}
-                        className={`rounded-lg px-2.5 py-1.5 text-xs font-bold border transition shrink-0 ${
-                          Number(form.durationMinutes) === dur
-                            ? 'bg-tide text-white border-tide shadow-xs'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                        }`}
-                      >
-                        {dur >= 60 ? `${Math.floor(dur/60)}h${dur%60 ? ` ${dur%60}m` : ''}` : `${dur}m`}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="w-24 shrink-0">
-                    <input
-                      type="number"
-                      min="5"
-                      max="1440"
-                      step="5"
-                      value={form.durationMinutes}
-                      onChange={(e) => handleDurationChange(e.target.value)}
-                      placeholder="Mins"
-                      className="w-full rounded-xl border border-slate-200 p-1.5 text-xs text-center font-bold text-slate-800 bg-white focus:border-tide focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
             </div>
 
-            {/* Section 5: Location & Mode */}
+            {/* Section 5: Branch, Venue & Transportation */}
             <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-              <div className="flex items-center justify-between">
-                <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-tide-dark">
-                  <MapPin className="h-4 w-4" /> 5. Location &amp; Event Mode
-                </h4>
+              <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-tide-dark">
+                <MapPin className="h-4 w-4" /> 5. Location &amp; Venue
+              </h4>
 
-                <div className="flex rounded-lg bg-slate-200/70 p-1 border border-slate-300">
-                  <button
-                    type="button"
-                    onClick={() => setForm({ ...form, isOnline: false })}
-                    className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
-                      !form.isOnline
-                        ? 'bg-white text-marine shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+              {/* Branch Selection */}
+              <div>
+                <label className="label-field">Branch *</label>
+                <select
+                  required
+                  className="input-field bg-white"
+                  value={form.branch}
+                  onChange={(e) => setForm({ ...form, branch: e.target.value })}
+                >
+                  <option value="">Select Branch...</option>
+                  {branchesList.map((b) => (
+                    <option key={b._id} value={b._id}>{b.name} ({b.city})</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Venue Options: Classroom / Boat */}
+              <div>
+                <label className="label-field">Venue *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label
+                    className={`flex items-center gap-2.5 rounded-xl border p-3 cursor-pointer transition select-none ${
+                      form.venue === 'Classroom'
+                        ? 'border-tide bg-tide/5 text-marine font-bold shadow-2xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    Offline
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setForm({ ...form, isOnline: true })}
-                    className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
-                      form.isOnline
-                        ? 'bg-white text-tide-dark shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                    <input
+                      type="radio"
+                      name="venue"
+                      value="Classroom"
+                      checked={form.venue === 'Classroom'}
+                      onChange={() => {
+                        setForm((prev) => ({ ...prev, venue: 'Classroom', boat: '' }));
+                      }}
+                      className="text-tide focus:ring-tide"
+                    />
+                    <School className="h-4 w-4 text-tide shrink-0" />
+                    <span className="text-xs">Classroom</span>
+                  </label>
+
+                  <label
+                    className={`flex items-center gap-2.5 rounded-xl border p-3 cursor-pointer transition select-none ${
+                      form.venue === 'Boat'
+                        ? 'border-tide bg-tide/5 text-marine font-bold shadow-2xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    <Sparkles className="inline h-3 w-3 mr-1" />
-                    Online
-                  </button>
+                    <input
+                      type="radio"
+                      name="venue"
+                      value="Boat"
+                      checked={form.venue === 'Boat'}
+                      onChange={() => {
+                        setForm((prev) => ({ ...prev, venue: 'Boat' }));
+                      }}
+                      className="text-tide focus:ring-tide"
+                    />
+                    <Ship className="h-4 w-4 text-tide shrink-0" />
+                    <span className="text-xs">Boat</span>
+                  </label>
                 </div>
               </div>
 
-              {!form.isOnline && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="label-field">Branch / Facility</label>
-                    <select
-                      className="input-field"
-                      value={form.branch}
-                      onChange={(e) => setForm({ ...form, branch: e.target.value })}
-                    >
-                      <option value="">Select Branch...</option>
-                      {branchesList.map((b) => (
-                        <option key={b._id} value={b._id}>{b.name} ({b.city})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="label-field">Specific Location / Bay</label>
-                    <input
-                      className="input-field"
-                      placeholder="e.g. Marina Dock Bay 3"
-                      value={form.location}
-                      onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    />
-                  </div>
+              {/* Boat Selection (Conditionally shown when Venue = Boat) */}
+              {form.venue === 'Boat' && (
+                <div className="space-y-1.5 rounded-xl bg-sky-50/60 p-3.5 border border-sky-200">
+                  <label className="label-field flex items-center justify-between">
+                    <span>Select Boat *</span>
+                    {form.branch && (
+                      <span className="text-[10px] text-slate-500 font-normal">Filtered by Branch</span>
+                    )}
+                  </label>
+                  <select
+                    required
+                    className="input-field bg-white font-semibold"
+                    value={form.boat}
+                    onChange={(e) => setForm({ ...form, boat: e.target.value })}
+                  >
+                    <option value="">Select Boat...</option>
+                    {availableBoats.map((b) => (
+                      <option key={b._id} value={b._id}>
+                        {b.name} ({b.vesselType || 'Boat'}) – Capacity: {b.capacity} | Status: {b.operationalStatus}
+                      </option>
+                    ))}
+                  </select>
+                  {availableBoats.length === 0 && (
+                    <p className="text-[11px] text-amber-700">
+                      No operational boats available for the selected branch.
+                    </p>
+                  )}
                 </div>
               )}
+
+              {/* Transportation Checkbox */}
+              <div className="pt-2">
+                <label className="flex items-center gap-3 cursor-pointer select-none rounded-xl border border-slate-200 bg-white p-3 hover:bg-slate-50 transition">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form.transportationRequired)}
+                    onChange={(e) => setForm({ ...form, transportationRequired: e.target.checked })}
+                    className="h-4 w-4 rounded border-slate-300 text-tide focus:ring-tide"
+                  />
+                  <Bus className="h-4 w-4 text-tide shrink-0" />
+                  <div>
+                    <span className="text-xs font-bold text-slate-800">Transportation Required</span>
+                    <p className="text-[11px] text-slate-400">Enable if academy student shuttle service is needed</p>
+                  </div>
+                </label>
+              </div>
             </div>
 
             {/* Section 6: Capacity & Status */}
@@ -627,7 +602,7 @@ export default function CalendarEventFormModal({
                 <div>
                   <label className="label-field">Seat Type</label>
                   <select
-                    className="input-field"
+                    className="input-field bg-white"
                     value={form.seatType}
                     onChange={(e) => setForm({ ...form, seatType: e.target.value })}
                   >
@@ -642,7 +617,7 @@ export default function CalendarEventFormModal({
                     <input
                       type="number"
                       min="1"
-                      className="input-field font-bold"
+                      className="input-field font-bold bg-white"
                       value={form.capacity}
                       onChange={(e) => setForm({ ...form, capacity: e.target.value })}
                     />
@@ -682,18 +657,6 @@ export default function CalendarEventFormModal({
           </form>
         </div>
       </div>
-
-      {/* Subject Management Modal */}
-      <SubjectManagementModal
-        open={manageSubjectsOpen}
-        onClose={() => setManageSubjectsOpen(false)}
-        onSubjectsChanged={() => {
-          fetchSubjects();
-          if (subjects) {
-            calendarService.getSubjectOptions().catch(() => {});
-          }
-        }}
-      />
     </>
   );
 }

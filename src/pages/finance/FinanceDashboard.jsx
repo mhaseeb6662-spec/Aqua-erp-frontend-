@@ -12,13 +12,17 @@ export default function FinanceDashboard() {
   const { user } = useAuth();
   const [metrics, setMetrics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [graphPeriod, setGraphPeriod] = useState('monthly');
+  const [hasError, setHasError] = useState(false);
 
   const fetchMetrics = async () => {
     setIsLoading(true);
+    setHasError(false);
     try {
-      const res = await financeService.getDashboardMetrics();
+      const res = await financeService.getDashboardMetrics({ graphPeriod });
       setMetrics(res.data.data);
     } catch (err) {
+      setHasError(true);
       toast.error('Failed to load financial dashboard metrics');
     } finally {
       setIsLoading(false);
@@ -27,7 +31,7 @@ export default function FinanceDashboard() {
 
   useEffect(() => {
     fetchMetrics();
-  }, []);
+  }, [graphPeriod]);
 
   return (
     <DashboardLayout>
@@ -113,34 +117,81 @@ export default function FinanceDashboard() {
 
             {/* Charts & Breakdown */}
             <div className="grid gap-6 lg:grid-cols-3">
-              {/* Revenue Monthly Trend Chart Simulation */}
+              {/* Financial Performance Graph */}
               <div className="lg:col-span-2 rounded-2xl bg-white p-6 shadow-sm border border-slate-100 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-display text-base font-bold text-marine flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-tide" /> Monthly Revenue Trend (2026)
-                  </h3>
-                  <span className="text-xs text-slate-400">Gross Income vs Operating Costs</span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-display text-base font-bold text-marine flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5 text-tide" /> Financial Performance
+                    </h3>
+                    <span className="text-xs text-slate-400">Net Revenue & Collections</span>
+                  </div>
+                  
+                  <select
+                    value={graphPeriod}
+                    onChange={(e) => setGraphPeriod(e.target.value)}
+                    className="text-xs font-semibold text-marine bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-marine"
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
                 </div>
 
-                <div className="h-64 flex items-end justify-between gap-3 pt-6 border-b border-slate-100 pb-2">
-                  {metrics?.monthlyTrend?.map((item) => {
-                    const heightPercent = Math.min(100, Math.round((item.revenue / 16000) * 100));
-                    return (
-                      <div key={item.month} className="flex-1 flex flex-col items-center gap-2 group">
-                        <div className="text-[10px] font-bold text-marine opacity-0 group-hover:opacity-100 transition">
-                          AED {item.revenue?.toLocaleString()}
-                        </div>
-                        <div className="w-full bg-slate-100 rounded-t-lg relative flex items-end h-48 overflow-hidden">
-                          <div
-                            style={{ height: `${heightPercent}%` }}
-                            className="w-full bg-tide transition-all duration-500 rounded-t-lg group-hover:bg-tide-dark"
-                          ></div>
-                        </div>
-                        <span className="text-xs font-semibold text-slate-600">{item.month}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+                {hasError ? (
+                  <div className="h-64 flex flex-col items-center justify-center text-sm font-semibold text-red-600 bg-red-50 rounded-xl border border-red-100 p-4">
+                    Unable to load Finance graph.
+                    <button onClick={fetchMetrics} className="mt-3 text-xs font-bold bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">Retry</button>
+                  </div>
+                ) : (!metrics?.trendData || metrics.trendData.length === 0) ? (
+                  <div className="h-64 flex items-center justify-center text-sm font-medium text-slate-400 bg-slate-50 rounded-xl border border-slate-100">
+                    No financial data available for this period.
+                  </div>
+                ) : (
+                  <div className="h-64 flex items-end justify-between gap-1 sm:gap-2 pt-6 border-b border-slate-100 pb-2 relative">
+                    {(() => {
+                      const maxRevenue = Math.max(...metrics.trendData.map(d => d.revenue), 100);
+                      return metrics.trendData.map((item) => {
+                        const heightPercent = Math.min(100, Math.max(0, Math.round((item.revenue / maxRevenue) * 100)));
+                        return (
+                          <div key={item.period} className="flex-1 flex flex-col items-center gap-2 group relative">
+                            {/* Tooltip */}
+                            <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition pointer-events-none z-10 w-44 left-1/2 -translate-x-1/2 bg-slate-800 text-white p-3 rounded-lg text-xs shadow-lg">
+                              <p className="font-bold text-center border-b border-slate-600 pb-1.5 mb-1.5">{item.label}</p>
+                              <div className="flex justify-between items-center gap-2 mb-1">
+                                <span className="text-slate-300">Revenue:</span>
+                                <span className="font-medium text-right">{formatAED(item.revenue)}</span>
+                              </div>
+                              {item.refunds > 0 && (
+                                <div className="flex justify-between items-center gap-2 mb-1 text-red-300">
+                                  <span>Refunds:</span>
+                                  <span className="font-medium text-right">{formatAED(item.refunds)}</span>
+                                </div>
+                              )}
+                              {item.refunds > 0 && (
+                                <div className="flex justify-between items-center gap-2 font-bold text-emerald-400 border-t border-slate-600 pt-1.5 mt-1.5">
+                                  <span>Net Revenue:</span>
+                                  <span className="text-right">{formatAED(item.netRevenue)}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="w-full bg-slate-50 border border-slate-100 rounded-t-lg relative flex items-end h-48 overflow-visible group-hover:bg-slate-100 transition-colors">
+                              <div
+                                style={{ height: `${heightPercent}%` }}
+                                className="w-full bg-tide transition-all duration-500 rounded-t-md group-hover:bg-tide-dark opacity-90 min-h-[2px]"
+                              ></div>
+                            </div>
+                            <span className="text-[9px] sm:text-[10px] font-semibold text-slate-500 truncate w-full text-center px-0.5">
+                              {item.label}
+                            </span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                )}
               </div>
 
               {/* Category Breakdown */}

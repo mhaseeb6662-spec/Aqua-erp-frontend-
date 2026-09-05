@@ -26,6 +26,7 @@ export default function StudentFormModal({ open, onClose, onSaved }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [programs, setPrograms] = useState([]);
+  const [branches, setBranches] = useState([]);
   const fileInputRef = useRef(null);
 
   // Form State
@@ -49,8 +50,6 @@ export default function StudentFormModal({ open, onClose, onSaved }) {
     streetAddress: '',
     country: 'United Arab Emirates',
     city: 'Dubai',
-    state: '',
-    zipCode: '',
 
     // Parent / Guardian
     parentFullName: '',
@@ -66,14 +65,18 @@ export default function StudentFormModal({ open, onClose, onSaved }) {
     socialMediaConsent: true,
     source: 'Social Media',
     interestedIn: '',
+    branch: '',
     notes: '',
   });
 
-  // Fetch programs for course dropdown
+  // Fetch programs and branches for dropdowns
   useEffect(() => {
     if (open) {
       api.get('/programs')
         .then(res => setPrograms(res.data.data || []))
+        .catch(() => {});
+      api.get('/branches')
+        .then(res => setBranches(res.data.data || []))
         .catch(() => {});
     }
   }, [open]);
@@ -365,8 +368,8 @@ export default function StudentFormModal({ open, onClose, onSaved }) {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-              <div className="sm:col-span-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Country</label>
                 <input
                   type="text"
@@ -376,7 +379,7 @@ export default function StudentFormModal({ open, onClose, onSaved }) {
                 />
               </div>
 
-              <div className="sm:col-span-1">
+              <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">City</label>
                 <select
                   value={form.city}
@@ -387,28 +390,6 @@ export default function StudentFormModal({ open, onClose, onSaved }) {
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
-              </div>
-
-              <div className="sm:col-span-1">
-                <label className="block text-xs font-bold text-slate-700 mb-1">Province / State</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Dubai"
-                  value={form.state}
-                  onChange={(e) => setForm({ ...form, state: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-900 focus:border-tide focus:outline-none"
-                />
-              </div>
-
-              <div className="sm:col-span-1">
-                <label className="block text-xs font-bold text-slate-700 mb-1">Zip / Postal Code</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 00000"
-                  value={form.zipCode}
-                  onChange={(e) => setForm({ ...form, zipCode: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-900 focus:border-tide focus:outline-none"
-                />
               </div>
             </div>
           </div>
@@ -560,28 +541,44 @@ export default function StudentFormModal({ open, onClose, onSaved }) {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Interested In / Enrolled Course</label>
-              {programs.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Branch</label>
                 <select
-                  value={form.interestedIn}
-                  onChange={(e) => setForm({ ...form, interestedIn: e.target.value })}
+                  value={form.branch}
+                  onChange={(e) => setForm({ ...form, branch: e.target.value })}
                   className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-900 focus:border-tide focus:outline-none bg-white"
                 >
-                  <option value="">-- Select Academy Course / Program --</option>
-                  {programs.map(p => (
-                    <option key={p._id} value={p.title}>{p.title}</option>
+                  <option value="">-- Select Branch --</option>
+                  {branches.map(b => (
+                    <option key={b._id} value={b._id}>{b.name}</option>
                   ))}
                 </select>
-              ) : (
-                <input
-                  type="text"
-                  placeholder="e.g. Junior Angler Academy Course"
-                  value={form.interestedIn}
-                  onChange={(e) => setForm({ ...form, interestedIn: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-900 focus:border-tide focus:outline-none"
-                />
-              )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Interested In / Enrolled Course</label>
+                {programs.length > 0 ? (
+                  <select
+                    value={form.interestedIn}
+                    onChange={(e) => setForm({ ...form, interestedIn: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-900 focus:border-tide focus:outline-none bg-white"
+                  >
+                    <option value="">-- Select Academy Course / Program --</option>
+                    {programs.map(p => (
+                      <option key={p._id} value={p.title}>{p.title}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="e.g. Junior Angler Academy Course"
+                    value={form.interestedIn}
+                    onChange={(e) => setForm({ ...form, interestedIn: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-900 focus:border-tide focus:outline-none"
+                  />
+                )}
+              </div>
             </div>
 
             <div>

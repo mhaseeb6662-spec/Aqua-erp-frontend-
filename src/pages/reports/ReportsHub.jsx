@@ -69,7 +69,7 @@ export default function ReportsHub() {
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
               <span className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-600">
-                Phase 9 • Management Information System
+                Management Information System • Live Reports
               </span>
             </div>
             <h1 className="font-display text-2xl font-bold tracking-tight text-marine mt-0.5">
@@ -191,7 +191,7 @@ export default function ReportsHub() {
                     <span className="text-xs font-semibold text-slate-600">sessions</span>
                   </p>
                   <p className="text-[11px] text-slate-600 font-medium">
-                    Ready Fleet: {data?.summary?.readyVessels || 0} vessels sea-ready
+                    Ready Boats: {data?.summary?.readyVessels || 0} boats sea-ready
                   </p>
                 </div>
               </div>

@@ -19,6 +19,9 @@ export default function Pipeline() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [source, setSource] = useState('');
+  const [datePeriod, setDatePeriod] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [dateSort, setDateSort] = useState('newest'); // 'newest' | 'oldest' | 'recent_update' | 'least_recent_update'
   const [dragOverStage, setDragOverStage] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -48,6 +51,9 @@ export default function Pipeline() {
         source,
         sortBy,
         sortOrder,
+        datePeriod,
+        startDate,
+        endDate
       });
 
       const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
@@ -89,6 +95,9 @@ export default function Pipeline() {
         source,
         sortBy,
         sortOrder,
+        datePeriod,
+        startDate,
+        endDate
       });
       setLeads(data.data || []);
     } catch (err) {
@@ -96,7 +105,7 @@ export default function Pipeline() {
     } finally {
       setLoading(false);
     }
-  }, [search, source, dateSort]);
+  }, [search, source, dateSort, datePeriod, startDate, endDate]);
 
   const loadSalesTeam = useCallback(async () => {
     if (!hasPermission('crm:leads:create')) return;
@@ -179,6 +188,21 @@ export default function Pipeline() {
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
+          <select className="input-field w-auto" value={datePeriod} onChange={(e) => setDatePeriod(e.target.value)}>
+            <option value="">All Time</option>
+            <option value="Daily">Daily</option>
+            <option value="Weekly">Weekly</option>
+            <option value="Monthly">Monthly</option>
+            <option value="Yearly">Yearly</option>
+            <option value="Custom">Custom</option>
+          </select>
+          {datePeriod === 'Custom' && (
+            <div className="flex items-center gap-2">
+              <input type="date" className="input-field w-auto text-xs" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <span className="text-slate-400">-</span>
+              <input type="date" className="input-field w-auto text-xs" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+          )}
 
           {/* Sort by Date Control */}
           <div className="flex items-center gap-1.5 bg-white border border-marine/[0.12] rounded-xl px-3 py-2 text-xs font-medium text-slate-700 shadow-2xs hover:border-tide transition-colors">

@@ -6,7 +6,8 @@ const portalService = {
   getProgram: (id) => api.get(`/programs/${id}`),
   createProgram: (data) => api.post('/programs', data),
   updateProgram: (id, data) => api.put(`/programs/${id}`, data),
-  deleteProgram: (id) => api.delete(`/programs/${id}`),
+  deleteProgram: (id, forceArchive = false) => api.delete(`/programs/${id}${forceArchive ? '?archive=true' : ''}`),
+  checkProgramDependencies: (id) => api.get(`/programs/${id}/dependencies`),
 
   // Branches
   getBranches: () => api.get('/branches'),

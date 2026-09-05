@@ -13,7 +13,7 @@ export default function ConvertLeadModal({ open, onClose, onConverted, lead }) {
     setLoading(true);
     try {
       const { data } = await leadService.convertLead(lead._id, { conversionNote: note });
-      toast.success(`${lead.fullName} converted to a customer.`);
+      toast.success(`${lead.fullName} converted to a student.`);
       onConverted(data.data);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to convert lead.');
@@ -26,18 +26,17 @@ export default function ConvertLeadModal({ open, onClose, onConverted, lead }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-marine-dark/40 p-4 backdrop-blur-sm">
       <div className="w-full max-w-sm animate-rise rounded-2xl bg-white p-6 shadow-pop">
         <div className="mb-5 flex items-center justify-between">
-          <h3 className="flex items-center gap-2 text-lg font-semibold text-marine">
-            <Sparkles className="h-5 w-5 text-sandbar-dark" />
-            Convert to customer
-          </h3>
-          <button onClick={onClose} className="text-ink/40 hover:text-ink">
-            <X className="h-5 w-5" />
+          <h2 className="font-display text-lg font-bold text-marine flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-emerald-500" />
+            Convert to student
+          </h2>
+          <button onClick={onClose} className="rounded-lg p-2 text-ink/40 hover:bg-marine/5 hover:text-marine">
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        <p className="text-sm text-ink/70">
-          <span className="font-medium text-marine">{lead?.fullName}</span> will move from the sales
-          pipeline into the customer list, keeping all activity and interaction history intact.
+        <p className="text-sm text-ink/70 mb-5">
+          This will move <strong>{lead?.fullName}</strong> out of the sales pipeline into the student list, keeping all activity and interaction history intact.
         </p>
 
         <div className="mt-4">

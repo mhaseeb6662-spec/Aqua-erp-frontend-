@@ -86,12 +86,10 @@ export default function UserFormModal({ open, onClose, onSaved, roles, editingUs
           </div>
 
           <div>
-            <label className="label-field">Email address</label>
+            <label className="label-field">Email address (Optional)</label>
             <input
               type="email"
-              required
-              disabled={!!editingUser}
-              className="input-field disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed"
+              className="input-field"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />

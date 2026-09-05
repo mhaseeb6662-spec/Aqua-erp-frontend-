@@ -2,7 +2,7 @@ import api from './api';
 
 const financeService = {
   // Financial Dashboard & Metrics
-  getDashboardMetrics: () => api.get('/finance/dashboard/metrics'),
+  getDashboardMetrics: (params) => api.get('/finance/dashboard/metrics', { params }),
 
   // Invoices
   getInvoices: (params) => api.get('/finance/invoices', { params }),

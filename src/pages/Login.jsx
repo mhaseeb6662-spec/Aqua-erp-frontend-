@@ -92,7 +92,7 @@ export default function Login() {
             Every branch, every booking.
           </h2>
           <p className="text-sm leading-relaxed text-slate-200">
-            Welcome to the official Aqua Fishing Academy operations platform — streamlining student programs, coach schedules, marine fleet management, and automated invoicing.
+            Welcome to the official Aqua Fishing Academy operations platform — streamlining student programs, coach schedules, marine boat management, and automated invoicing.
           </p>
 
           <div className="pt-2 space-y-2.5 text-xs text-slate-200">

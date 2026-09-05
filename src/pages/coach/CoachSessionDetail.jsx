@@ -216,12 +216,17 @@ export default function CoachSessionDetail() {
         <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-3 gap-2">
             <div>
-              <span className="text-xs font-bold text-tide">{new Date(session?.startTime).toDateString()}</span>
-              <h2 className="font-display text-base font-bold text-marine">{session?.branch?.name}</h2>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-tide bg-tide/10 px-2 py-0.5 rounded-md">
+                  {session?.sessionType || 'Class'}
+                </span>
+                <span className="text-xs font-bold text-slate-500">{new Date(session?.startTime).toDateString()}</span>
+              </div>
+              <h2 className="font-display text-base font-bold text-marine mt-1">{session?.branch?.name || 'Dubai'}</h2>
             </div>
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                Location: {session?.location}
+                Location: {session?.location || 'Academy Dock'}
               </span>
               <span
                 className={`rounded-full px-3 py-1 text-xs font-bold ${
@@ -235,18 +240,22 @@ export default function CoachSessionDetail() {
 
           <div className="grid gap-3 sm:grid-cols-3 text-xs text-slate-600">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-tide" />
+              <Clock className="h-4 w-4 text-tide shrink-0" />
               <span>
                 {new Date(session?.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -{' '}
-                {new Date(session?.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {new Date(session?.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}{' '}
+                <span className="font-semibold text-tide">
+                  ({Math.floor(Math.round((new Date(session?.endTime) - new Date(session?.startTime)) / 60000) / 60) > 0 ? `${Math.floor(Math.round((new Date(session?.endTime) - new Date(session?.startTime)) / 60000) / 60)} hr ` : ''}
+                  {Math.round((new Date(session?.endTime) - new Date(session?.startTime)) / 60000) % 60 > 0 ? `${Math.round((new Date(session?.endTime) - new Date(session?.startTime)) / 60000) % 60} min` : ''})
+                </span>
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-tide" />
-              <span>Assigned Student: <strong className="text-marine">{student?.fullName}</strong></span>
+              <Users className="h-4 w-4 text-tide shrink-0" />
+              <span>Student / Group: <strong className="text-marine">{student?.fullName || (session?.participants?.length > 0 ? `${session.participants.length} Students` : 'Open Roster')}</strong></span>
             </div>
             <div className="flex items-center gap-2">
-              <CheckSquare className="h-4 w-4 text-tide" />
+              <CheckSquare className="h-4 w-4 text-tide shrink-0" />
               <span>Current Roll Call: <strong className="text-tide">{session?.attendance}</strong></span>
             </div>
           </div>

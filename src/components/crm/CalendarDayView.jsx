@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { User, Clock, MapPin, BookOpen, Sparkles, CalendarDays, ListFilter, LayoutGrid } from 'lucide-react';
+import { User, Clock, MapPin, BookOpen, Sparkles, CalendarDays, ListFilter, LayoutGrid, Ship, Bus } from 'lucide-react';
 import { CALENDAR_TYPE_STYLES, CALENDAR_STATUS_STYLES, getProgramTheme, FINANCIAL_STATUS_BADGE_STYLES } from '../../constants/crm';
 
 const TIME_SLOTS = [
@@ -198,7 +198,7 @@ export default function CalendarDayView({
                               </p>
 
                               <p className="text-[11px] font-semibold text-slate-700 opacity-90 mt-0.5">
-                                {ev.programDetails?.category || ev.subject || 'Class'}
+                                {ev.programDetails?.category || 'Class'}
                                 {ev.programDetails?.level ? ` • ${ev.programDetails.level}` : ''}
                               </p>
                             </div>
@@ -208,12 +208,17 @@ export default function CalendarDayView({
                                 <User className="h-3 w-3 text-tide shrink-0" />
                                 {staffNames}
                               </span>
-                              {(ev.location || ev.branch?.name) && (
+                              {(ev.venue === 'Boat' || ev.boat || ev.vessel) ? (
+                                <span className="flex items-center gap-0.5 truncate text-sky-700 font-bold">
+                                  <Ship className="h-3 w-3 text-sky-600 shrink-0" />
+                                  {ev.boat?.name || ev.vessel?.name || 'Boat'}
+                                </span>
+                              ) : (ev.branch?.name || ev.location) ? (
                                 <span className="flex items-center gap-0.5 truncate text-slate-600 font-medium">
                                   <MapPin className="h-3 w-3 text-amber-700 shrink-0" />
-                                  {ev.location || ev.branch?.name}
+                                  {ev.branch?.name || ev.location}
                                 </span>
-                              )}
+                              ) : null}
                             </div>
                           </div>
                         );

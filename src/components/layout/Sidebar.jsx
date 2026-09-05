@@ -68,7 +68,7 @@ const ADMIN_STAFF_SECTIONS = [
     items: [
       { to: '/management/dashboard', label: 'Executive Overview', icon: LayoutDashboard, permission: 'core:reports:view' },
       { to: '/management/revenue', label: 'Revenue Reconciliation', icon: DollarSign, permission: 'core:reports:view' },
-      { to: '/management/sales', label: 'Sales Analytics', icon: TrendingUp, permission: 'core:reports:view' },
+      { to: '/management/sales', label: 'Sales Analytics', icon: TrendingUp, permission: ['core:reports:view', 'crm:performance:view'] },
       { to: '/management/operations', label: 'Operations & Fleet', icon: Ship, permission: 'core:reports:view' },
       { to: '/management/staff', label: 'Coach & Staff Scorecard', icon: Award, permission: 'core:reports:view' },
       { to: '/management/branches', label: 'Branch Performance', icon: Building, permission: 'core:reports:view' },
@@ -83,17 +83,16 @@ const ADMIN_STAFF_SECTIONS = [
     items: [
       { to: '/leads', label: 'Leads', icon: Contact2, permission: 'crm:leads:view' },
       { to: '/pipeline', label: 'Pipeline', icon: KanbanSquare, permission: 'crm:pipeline:view' },
-      { to: '/customers', label: 'Customers', icon: UserSquare2, permission: 'crm:customers:view' },
+      { to: '/customers', label: 'Students', icon: UserSquare2, permission: 'crm:customers:view' },
       { to: '/calendar', label: 'Calendar', icon: CalendarDays, permission: 'crm:calendar:view' },
       { to: '/sales-team', label: 'Sales Team', icon: Users2, permission: 'crm:sales-team:view' },
-      { to: '/sales-performance', label: 'Performance', icon: BarChart3, permission: 'crm:performance:view' },
     ],
   },
   {
     title: 'Operations',
     items: [
       { to: '/operations/dashboard', label: 'Operations Dashboard', icon: LayoutDashboard, permission: 'operations:dashboard:view' },
-      { to: '/operations/fleet', label: 'Fleet Management', icon: Ship, permission: 'operations:fleet:view' },
+      { to: '/operations/fleet', label: 'Boat Management', icon: Ship, permission: 'operations:fleet:view' },
       { to: '/operations/incidents', label: 'Incidents', icon: ShieldAlert, permission: 'operations:incidents:view' },
       { to: '/operations/equipment', label: 'Equipment & Inventory', icon: HardHat, permission: 'operations:equipment:view' },
     ],

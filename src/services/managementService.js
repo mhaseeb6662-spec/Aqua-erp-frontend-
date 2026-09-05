@@ -14,6 +14,7 @@ const managementService = {
   updateAlert: (id, data) => api.put(`/management/alerts/${id}`, data),
   getAuditExplorer: (params) => api.get('/management/audit', { params }),
   getDrilldown: (params) => api.get('/management/drilldown', { params }),
+  getCustomerRevenue: (params) => api.get('/management/customer-revenue', { params }),
 };
 
 export default managementService;

@@ -59,8 +59,8 @@ export default function OperationsDashboard() {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold tracking-tight text-marine">Operations & Fleet Control</h1>
-            <p className="text-xs text-slate-500">Live operational command center for vessels, session delivery, equipment, and safety.</p>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-marine">Operations & Boat Control</h1>
+            <p className="text-xs text-slate-500">Live operational command center for boats, session delivery, equipment, and safety.</p>
           </div>
           <div className="flex items-center gap-3">
             <button 
@@ -175,9 +175,9 @@ export default function OperationsDashboard() {
                 )}
               </div>
               <div>
-                <h3 className="font-bold text-marine text-base">Fleet Management</h3>
+                <h3 className="font-bold text-marine text-base">Boat Management</h3>
                 <p className="text-xs text-slate-500 mt-1">
-                  Manage registered vessels, maintenance logs, capacity limits, and inspection documents.
+                  Manage registered boats, maintenance logs, capacity limits, and inspection documents.
                 </p>
               </div>
             </CardContent>
@@ -244,7 +244,7 @@ export default function OperationsDashboard() {
                 {stats.fleetReadiness.maintenance > 0 && (
                   <div className="flex items-center gap-2 bg-white/80 p-2.5 rounded-xl border border-amber-200">
                     <Ship className="h-4 w-4 text-amber-700 shrink-0" />
-                    <span><strong>{stats.fleetReadiness.maintenance} vessel(s)</strong> currently under maintenance.</span>
+                    <span><strong>{stats.fleetReadiness.maintenance} boat(s)</strong> currently under maintenance.</span>
                   </div>
                 )}
                 {stats.lowEquipment > 0 && (
