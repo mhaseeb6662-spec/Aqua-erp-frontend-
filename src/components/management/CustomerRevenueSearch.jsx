@@ -14,6 +14,7 @@ export default function CustomerRevenueSearch({ filters }) {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [revenueData, setRevenueData] = useState(null);
   const [isLoadingRevenue, setIsLoadingRevenue] = useState(false);
+  const [revenueError, setRevenueError] = useState(null);
 
   // Debounce search
   useEffect(() => {
@@ -41,16 +42,22 @@ export default function CustomerRevenueSearch({ filters }) {
 
   // Load revenue when customer is selected or filters change
   const fetchRevenue = useCallback(async (customerId) => {
+    if (!customerId) return;
     setIsLoadingRevenue(true);
-    setRevenueData(null);
+    setRevenueError(null);
     try {
       const res = await managementService.getCustomerRevenue({
         customerId,
         ...filters
       });
-      setRevenueData(res.data.data);
+      const data = res.data?.data || res.data;
+      setRevenueData(data);
+      setRevenueError(null);
     } catch (err) {
       console.error('Failed to load customer revenue', err);
+      const msg = err.response?.data?.message || 'Failed to load revenue data.';
+      setRevenueError(msg);
+      setRevenueData(null);
     } finally {
       setIsLoadingRevenue(false);
     }
@@ -65,6 +72,8 @@ export default function CustomerRevenueSearch({ filters }) {
 
   const handleSelectCustomer = (customer) => {
     setSelectedCustomer(customer);
+    setRevenueData(null);
+    setRevenueError(null);
     setQuery('');
     setShowDropdown(false);
   };
@@ -72,6 +81,7 @@ export default function CustomerRevenueSearch({ filters }) {
   const handleClear = () => {
     setSelectedCustomer(null);
     setRevenueData(null);
+    setRevenueError(null);
     setQuery('');
   };
 
@@ -140,7 +150,7 @@ export default function CustomerRevenueSearch({ filters }) {
                 <h3 className="text-xl font-bold flex items-center gap-2">
                   <User className="h-5 w-5 opacity-70" /> {selectedCustomer.fullName}
                 </h3>
-                <p className="text-white/60 text-xs mt-1">{selectedCustomer.email}</p>
+                <p className="text-white/60 text-xs mt-1">{selectedCustomer.email || selectedCustomer.phone || 'No direct email'}</p>
               </div>
               <button 
                 onClick={handleClear}
@@ -157,28 +167,67 @@ export default function CustomerRevenueSearch({ filters }) {
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></div>
                   Loading revenue...
                 </div>
+              ) : revenueError ? (
+                <div className="flex items-center justify-between">
+                  <p className="text-red-300 text-sm">{revenueError}</p>
+                  <button
+                    onClick={() => fetchRevenue(selectedCustomer._id)}
+                    className="text-xs bg-white/10 hover:bg-white/20 text-white px-2.5 py-1 rounded-lg transition"
+                  >
+                    Retry
+                  </button>
+                </div>
               ) : revenueData ? (
                 <div>
-                  <p className="text-white/70 text-xs font-bold uppercase tracking-wider mb-1">Total Revenue</p>
-                  <div className="flex items-end gap-3">
+                  <p className="text-white/70 text-xs font-bold uppercase tracking-wider mb-1">Total Net Revenue</p>
+                  <div className="flex items-end gap-3 flex-wrap">
                     <p className="text-3xl font-display font-bold text-teal-400">
-                      {formatAED(revenueData.netRevenue)}
+                      {formatAED(revenueData.netRevenue ?? revenueData.totalRevenue ?? 0)}
                     </p>
-                    {(revenueData.totalRefunds > 0) && (
+                    {((revenueData.totalRefunds > 0) || (revenueData.refunds > 0)) && (
                       <p className="text-xs text-white/60 mb-1.5">
-                        (After {formatAED(revenueData.totalRefunds)} refunds)
+                        (After {formatAED(revenueData.totalRefunds ?? revenueData.refunds ?? 0)} refunds)
                       </p>
                     )}
                   </div>
-                  {revenueData.netRevenue === 0 && revenueData.totalPayments === 0 && (
-                    <p className="text-xs text-amber-200 mt-2 bg-amber-500/10 inline-block px-2 py-1 rounded border border-amber-500/20">
+
+                  {/* Breakdown details */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-3 border-t border-white/10">
+                    <div>
+                      <p className="text-[10px] text-white/60 uppercase font-semibold">Gross Payments</p>
+                      <p className="text-sm font-bold text-white">
+                        {formatAED(revenueData.grossRevenue ?? revenueData.totalPayments ?? 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-white/60 uppercase font-semibold">Refunds</p>
+                      <p className="text-sm font-bold text-white">
+                        {formatAED(revenueData.totalRefunds ?? revenueData.refunds ?? 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-white/60 uppercase font-semibold">Transactions</p>
+                      <p className="text-sm font-bold text-white">
+                        {revenueData.paidTransactionsCount ?? 0}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-white/60 uppercase font-semibold">Last Payment</p>
+                      <p className="text-sm font-bold text-white">
+                        {revenueData.lastPaymentDate
+                          ? new Date(revenueData.lastPaymentDate).toLocaleDateString()
+                          : 'None'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {(revenueData.netRevenue === 0 && (revenueData.totalPayments === 0 || revenueData.grossRevenue === 0)) && (
+                    <p className="text-xs text-amber-200 mt-3 bg-amber-500/10 inline-block px-2.5 py-1 rounded border border-amber-500/20">
                       No completed payments found for this customer in the selected period.
                     </p>
                   )}
                 </div>
-              ) : (
-                <p className="text-red-300 text-sm">Failed to load revenue data.</p>
-              )}
+              ) : null}
             </div>
           </CardContent>
         </Card>
