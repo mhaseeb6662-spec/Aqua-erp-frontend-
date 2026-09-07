@@ -6,7 +6,7 @@ import financeService from '../../services/financeService';
 import toast from 'react-hot-toast';
 import { formatAED } from '../../utils/currency';
 import {
-  BookOpen, Search, Filter, Compass, Award, Users, DollarSign, Calendar, MapPin, CheckCircle2, Plus, X, ArrowRight, Edit, Trash2, Star, CreditCard, FileText, CheckCircle, ShieldCheck, Download, Receipt
+  BookOpen, Search, Filter, Compass, Award, Users, DollarSign, Calendar, MapPin, CheckCircle2, Plus, X, ArrowRight, Edit, Trash2, Star, CreditCard, FileText, CheckCircle, ShieldCheck, Download, Receipt, Settings, Tag
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
@@ -17,6 +17,7 @@ export default function ProgramCatalogue() {
   const { user, hasPermission } = useAuth();
   const [programs, setPrograms] = useState([]);
   const [branches, setBranches] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -26,6 +27,15 @@ export default function ProgramCatalogue() {
   // Modals
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
+
+  // Category Management Modals
+  const [showCategoryManageModal, setShowCategoryManageModal] = useState(false);
+  const [showCategoryCreateModal, setShowCategoryCreateModal] = useState(false);
+  const [categoryForm, setCategoryForm] = useState({ name: '', description: '', status: 'Active' });
+  const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
+  const [editCategoryForm, setEditCategoryForm] = useState({ name: '', description: '', status: 'Active' });
+  const [isSavingEditCat, setIsSavingEditCat] = useState(false);
   
 
   // Booking Wizard Steps: 'form' -> 'invoice' -> 'confirmation'
@@ -62,6 +72,7 @@ export default function ProgramCatalogue() {
 
   const [programForm, setProgramForm] = useState({
     title: "",
+    category: "Fishing Essentials",
     description: "",
     ageGroup: "All Ages",
     durationWeeks: 4,
@@ -74,6 +85,15 @@ export default function ProgramCatalogue() {
     brochureUrl: "",
     brochureMetadata: null
   });
+
+  const fetchCategories = async () => {
+    try {
+      const res = await portalService.getProgramCategories({ includeInactive: 'true' });
+      setCategories(res.data.data || []);
+    } catch (err) {
+      console.error('Failed to load program categories', err);
+    }
+  };
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -95,6 +115,10 @@ export default function ProgramCatalogue() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -172,18 +196,125 @@ export default function ProgramCatalogue() {
   };
 
 
+  // --- Category Actions ---
+  const handleOpenAddCategory = () => {
+    setCategoryForm({
+      name: '',
+      description: '',
+      status: 'Active'
+    });
+    setShowCategoryCreateModal(true);
+  };
+
+  const handleSaveNewCategory = async (e) => {
+    e.preventDefault();
+    if (!categoryForm.name.trim()) {
+      return toast.error('Category name is required');
+    }
+    setIsSubmittingCategory(true);
+    try {
+      const res = await portalService.createProgramCategory({
+        name: categoryForm.name.trim(),
+        description: categoryForm.description.trim(),
+        status: categoryForm.status
+      });
+      const newCat = res.data.data;
+      toast.success(`Category "${newCat.name}" created successfully!`);
+      setShowCategoryCreateModal(false);
+      await fetchCategories();
+      // If adding/editing program, auto select new category
+      setProgramForm((prev) => ({ ...prev, category: newCat.name }));
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to create program category');
+    } finally {
+      setIsSubmittingCategory(false);
+    }
+  };
+
+  const handleStartEditCategory = (cat) => {
+    setEditingCategoryId(cat._id);
+    setEditCategoryForm({
+      name: cat.name,
+      description: cat.description || '',
+      status: cat.status || 'Active'
+    });
+  };
+
+  const handleSaveEditCategory = async (id) => {
+    if (!editCategoryForm.name.trim()) {
+      return toast.error('Category name cannot be empty');
+    }
+    setIsSavingEditCat(true);
+    try {
+      await portalService.updateProgramCategory(id, {
+        name: editCategoryForm.name.trim(),
+        description: editCategoryForm.description.trim(),
+        status: editCategoryForm.status
+      });
+      toast.success('Category updated successfully!');
+      setEditingCategoryId(null);
+      await fetchCategories();
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update category');
+    } finally {
+      setIsSavingEditCat(false);
+    }
+  };
+
+  const handleToggleArchiveCategory = async (cat) => {
+    try {
+      const res = await portalService.archiveProgramCategory(cat._id);
+      const updated = res.data.data;
+      toast.success(`Category "${cat.name}" is now ${updated.status}`);
+      await fetchCategories();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update category status');
+    }
+  };
+
+  const handleDeleteCategory = async (cat) => {
+    try {
+      const depRes = await portalService.checkProgramCategoryDependencies(cat._id);
+      if (depRes.data?.hasDependencies) {
+        return toast.error(`Cannot delete category "${cat.name}" because ${depRes.data.inUseCount} program(s) are currently assigned to it. Please archive it instead.`);
+      }
+      if (!window.confirm(`Are you sure you want to permanently delete category "${cat.name}"?`)) return;
+      await portalService.deleteProgramCategory(cat._id);
+      toast.success(`Category "${cat.name}" deleted successfully.`);
+      await fetchCategories();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete category. You can archive it instead.');
+    }
+  };
+
   const handleOpenCreate = () => {
     setEditingProgramId(null);
+    const defaultCat = categories.find(c => c.status === 'Active')?.name || 'Fishing Essentials';
     setProgramForm({
-      title: "", description: "", ageGroup: "All Ages", durationWeeks: 4, durationHours: 1, durationMinutes: 0, price: 299, calendarColor: "Red", status: "active", branches: [], brochureUrl: "", brochureMetadata: null
+      title: "",
+      category: defaultCat,
+      description: "",
+      ageGroup: "All Ages",
+      durationWeeks: 4,
+      durationHours: 1,
+      durationMinutes: 0,
+      price: 299,
+      calendarColor: "Red",
+      status: "active",
+      branches: [],
+      brochureUrl: "",
+      brochureMetadata: null
     });
     setShowProgramModal(true);
   };
 
   const handleOpenEdit = (prog) => {
     setEditingProgramId(prog._id);
+    const defaultCat = categories.find(c => c.status === 'Active')?.name || 'Fishing Essentials';
     setProgramForm({
       title: prog.title || "",
+      category: prog.category || defaultCat,
       description: prog.description || "",
       ageGroup: prog.ageGroup || "All Ages",
       durationWeeks: prog.durationWeeks || 4,
@@ -305,12 +436,21 @@ export default function ProgramCatalogue() {
             </p>
           </div>
           {hasPermission('portal:programs:manage') && (
-            <button
-              onClick={handleOpenCreate}
-              className="inline-flex items-center gap-2 rounded-xl bg-tide px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-tide-dark"
-            >
-              <Plus className="h-4 w-4" /> Add New Program
-            </button>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                onClick={() => setShowCategoryManageModal(true)}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-marine"
+                title="Manage Program Categories"
+              >
+                <Settings className="h-4 w-4 text-tide" /> Program Categories
+              </button>
+              <button
+                onClick={handleOpenCreate}
+                className="inline-flex items-center gap-2 rounded-xl bg-tide px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-tide-dark"
+              >
+                <Plus className="h-4 w-4" /> Add New Program
+              </button>
+            </div>
           )}
         </div>
 
@@ -327,14 +467,35 @@ export default function ProgramCatalogue() {
             />
           </div>
 
-          
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="rounded-xl border border-slate-200 py-2 px-3 text-sm focus:border-tide focus:outline-none focus:ring-1 focus:ring-tide bg-white"
+          >
+            <option value="">All Categories</option>
+            {categories.filter(c => c.status === 'Active').map((cat) => (
+              <option key={cat._id || cat.name} value={cat.name}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
 
-          
+          <select
+            value={selectedLevel}
+            onChange={(e) => setSelectedLevel(e.target.value)}
+            className="rounded-xl border border-slate-200 py-2 px-3 text-sm focus:border-tide focus:outline-none focus:ring-1 focus:ring-tide bg-white"
+          >
+            <option value="">All Skill Levels</option>
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+            <option value="Master">Master</option>
+          </select>
 
           <select
             value={selectedBranch}
             onChange={(e) => setSelectedBranch(e.target.value)}
-            className="rounded-xl border border-slate-200 py-2 px-3 text-sm focus:border-tide focus:outline-none focus:ring-1 focus:ring-tide"
+            className="rounded-xl border border-slate-200 py-2 px-3 text-sm focus:border-tide focus:outline-none focus:ring-1 focus:ring-tide bg-white"
           >
             <option value="">All Branches</option>
             {branches.map((b) => (
@@ -751,6 +912,31 @@ export default function ProgramCatalogue() {
     />
   </div>
 
+  <div>
+    <label className="block text-xs font-semibold text-slate-700">Program Category *</label>
+    <div className="flex items-center gap-2 mt-1">
+      <select
+        required
+        value={programForm.category}
+        onChange={(e) => setProgramForm({ ...programForm, category: e.target.value })}
+        className="w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none bg-white"
+      >
+        <option value="">-- Select Category --</option>
+        {categories.filter(c => c.status === 'Active').map((c) => (
+          <option key={c._id || c.name} value={c.name}>{c.name}</option>
+        ))}
+      </select>
+      <button
+        type="button"
+        onClick={handleOpenAddCategory}
+        className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-tide transition shrink-0"
+        title="Add New Category"
+      >
+        <Plus className="h-4 w-4" />
+      </button>
+    </div>
+  </div>
+
   <div className="grid grid-cols-2 gap-3">
     <div>
       <label className="block text-xs font-semibold text-slate-700">Price (AED) *</label>
@@ -959,6 +1145,243 @@ export default function ProgramCatalogue() {
                     {isDeleting ? 'Deleting...' : 'Permanently Delete'}
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* ADD PROGRAM CATEGORY MODAL */}
+        {/* ======================================================== */}
+        {showCategoryCreateModal && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-marine-dark/50 backdrop-blur-sm p-4">
+            <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="rounded-xl bg-tide/10 p-2 text-tide">
+                    <Tag className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-base font-bold text-marine">Add Program Category</h3>
+                    <p className="text-[11px] text-slate-400">Create a new category for academy courses</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCategoryCreateModal(false)}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveNewCategory} className="space-y-3.5">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    Category Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    placeholder="e.g. Fly Fishing & Stream Tactics"
+                    value={categoryForm.name}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-900 focus:border-tide focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    Description (Optional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Brief curriculum description or syllabus highlights..."
+                    value={categoryForm.description}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-900 focus:border-tide focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    Initial Status
+                  </label>
+                  <select
+                    value={categoryForm.status}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, status: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-900 focus:border-tide focus:outline-none bg-white"
+                  >
+                    <option value="Active">Active (Available immediately)</option>
+                    <option value="Inactive">Inactive (Draft / Hidden)</option>
+                  </select>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowCategoryCreateModal(false)}
+                    className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingCategory}
+                    className="rounded-xl bg-tide px-4 py-2 text-xs font-bold text-white hover:bg-tide-dark shadow-sm disabled:opacity-50 transition"
+                  >
+                    {isSubmittingCategory ? 'Saving...' : 'Save Program Category'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* MANAGE PROGRAM CATEGORIES MODAL */}
+        {/* ======================================================== */}
+        {showCategoryManageModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-marine-dark/50 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl my-8 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="rounded-xl bg-tide/10 p-2 text-tide">
+                    <Settings className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-lg font-bold text-marine">Manage Program Categories</h3>
+                    <p className="text-xs text-slate-500">Add, rename, or archive categories across Academy courses</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleOpenAddCategory}
+                    className="inline-flex items-center gap-1 rounded-xl bg-tide px-3 py-1.5 text-xs font-bold text-white hover:bg-tide-dark shadow-sm transition"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> + Add New Program Category
+                  </button>
+                  <button
+                    onClick={() => setShowCategoryManageModal(false)}
+                    className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 transition"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="divide-y divide-slate-100 max-h-[60vh] overflow-y-auto pr-1">
+                {categories.length === 0 ? (
+                  <p className="text-center py-8 text-xs text-slate-400">No categories found. Click "+ Add New Program Category" above.</p>
+                ) : (
+                  categories.map((cat) => (
+                    <div key={cat._id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      {editingCategoryId === cat._id ? (
+                        <div className="flex-1 space-y-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <input
+                              type="text"
+                              value={editCategoryForm.name}
+                              onChange={(e) => setEditCategoryForm({ ...editCategoryForm, name: e.target.value })}
+                              className="rounded-lg border border-slate-200 p-2 text-xs text-slate-900 focus:border-tide focus:outline-none"
+                              placeholder="Category Name"
+                            />
+                            <select
+                              value={editCategoryForm.status}
+                              onChange={(e) => setEditCategoryForm({ ...editCategoryForm, status: e.target.value })}
+                              className="rounded-lg border border-slate-200 p-2 text-xs text-slate-900 focus:border-tide focus:outline-none bg-white"
+                            >
+                              <option value="Active">Active</option>
+                              <option value="Inactive">Inactive (Archived)</option>
+                            </select>
+                          </div>
+                          <input
+                            type="text"
+                            value={editCategoryForm.description}
+                            onChange={(e) => setEditCategoryForm({ ...editCategoryForm, description: e.target.value })}
+                            className="w-full rounded-lg border border-slate-200 p-2 text-xs text-slate-900 focus:border-tide focus:outline-none"
+                            placeholder="Optional description"
+                          />
+                          <div className="flex items-center gap-2 pt-1">
+                            <button
+                              onClick={() => handleSaveEditCategory(cat._id)}
+                              disabled={isSavingEditCat}
+                              className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
+                            >
+                              {isSavingEditCat ? 'Saving...' : 'Save Changes'}
+                            </button>
+                            <button
+                              onClick={() => setEditingCategoryId(null)}
+                              className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-marine">{cat.name}</span>
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                cat.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                              }`}>
+                                {cat.status}
+                              </span>
+                              <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-tide">
+                                {cat.programCount || 0} {cat.programCount === 1 ? 'Program' : 'Programs'}
+                              </span>
+                            </div>
+                            {cat.description && (
+                              <p className="text-xs text-slate-400 mt-0.5">{cat.description}</p>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              onClick={() => handleStartEditCategory(cat)}
+                              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+                              title="Edit / Rename"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleToggleArchiveCategory(cat)}
+                              className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition ${
+                                cat.status === 'Active'
+                                  ? 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                                  : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                              }`}
+                              title={cat.status === 'Active' ? 'Archive Category' : 'Activate Category'}
+                            >
+                              {cat.status === 'Active' ? 'Archive' : 'Activate'}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCategory(cat)}
+                              className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
+                              title={cat.programCount > 0 ? `In use by ${cat.programCount} program(s)` : 'Delete Category'}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                <span className="text-[11px] text-slate-400">
+                  Total {categories.length} categories ({categories.filter(c => c.status === 'Active').length} active)
+                </span>
+                <button
+                  onClick={() => setShowCategoryManageModal(false)}
+                  className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>

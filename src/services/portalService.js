@@ -9,6 +9,14 @@ const portalService = {
   deleteProgram: (id, forceArchive = false) => api.delete(`/programs/${id}${forceArchive ? '?archive=true' : ''}`),
   checkProgramDependencies: (id) => api.get(`/programs/${id}/dependencies`),
 
+  // Program Categories
+  getProgramCategories: (params) => api.get('/programs/categories', { params }),
+  createProgramCategory: (data) => api.post('/programs/categories', data),
+  updateProgramCategory: (id, data) => api.put(`/programs/categories/${id}`, data),
+  archiveProgramCategory: (id) => api.patch(`/programs/categories/${id}/archive`),
+  deleteProgramCategory: (id) => api.delete(`/programs/categories/${id}`),
+  checkProgramCategoryDependencies: (id) => api.get(`/programs/categories/${id}/dependencies`),
+
   // Branches
   getBranches: () => api.get('/branches'),
   getBranch: (id) => api.get(`/branches/${id}`),
