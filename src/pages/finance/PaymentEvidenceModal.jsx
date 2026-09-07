@@ -1,8 +1,28 @@
-import { X, ExternalLink, Calendar, User, CreditCard, ShieldCheck } from 'lucide-react';
+import { X, ExternalLink, Calendar, User, CreditCard, ShieldCheck, ZoomIn } from 'lucide-react';
 import { formatAED } from '../../utils/currency';
+import { useImagePreview } from '../../context/ImagePreviewContext';
 
 export default function PaymentEvidenceModal({ payment, onClose }) {
+  const { openPreview } = useImagePreview();
   if (!payment) return null;
+
+  const handlePreview = () => {
+    if (!payment.evidenceUrl) return;
+    openPreview({
+      src: payment.evidenceUrl,
+      title: `POS Payment Evidence — ${payment.transactionId || ''}`,
+      metadata: {
+        'Transaction ID': payment.transactionId,
+        'Amount': formatAED(payment.amount),
+        'Payment Method': payment.paymentMethod,
+        'Approval Code': payment.approvalCode || 'N/A',
+        'Date': new Date(payment.paidAt || Date.now()).toLocaleDateString(),
+        'Recorded By': payment.recordedBy?.fullName || 'Staff / Crew',
+      },
+      allowDownload: true,
+      requiredPermission: 'finance:payments:view',
+    });
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-marine-dark/50 backdrop-blur-sm p-4">
@@ -28,11 +48,25 @@ export default function PaymentEvidenceModal({ payment, onClose }) {
         {/* Evidence Image */}
         <div className="my-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-center">
           {payment.evidenceUrl ? (
-            <img
-              src={payment.evidenceUrl}
-              alt="Card Machine Slip"
-              className="max-h-80 w-full object-contain mx-auto bg-slate-900/5 p-2 rounded-lg"
-            />
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={handlePreview}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handlePreview()}
+              className="group relative cursor-pointer block"
+              title="Click to zoom / preview full image"
+            >
+              <img
+                src={payment.evidenceUrl}
+                alt="Card Machine Slip"
+                className="max-h-80 w-full object-contain mx-auto bg-slate-900/5 p-2 rounded-lg transition duration-200 group-hover:opacity-90"
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-marine-dark/30 opacity-0 transition duration-200 group-hover:opacity-100 rounded-lg">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-marine shadow">
+                  <ZoomIn className="h-3.5 w-3.5 text-tide" /> Click to Zoom
+                </span>
+              </div>
+            </div>
           ) : (
             <div className="p-8 text-slate-400 text-xs font-medium">No receipt image attached</div>
           )}

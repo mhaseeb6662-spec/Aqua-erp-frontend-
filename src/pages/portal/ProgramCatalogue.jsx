@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import AcademyLogo from '../../components/common/AcademyLogo';
+import SecureImageThumbnail from '../../components/common/SecureImageThumbnail';
 
 export default function ProgramCatalogue() {
   const { user, hasPermission } = useAuth();
@@ -365,9 +366,19 @@ export default function ProgramCatalogue() {
                 <div>
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     {prog.brochureUrl ? (
-                      <a href={prog.brochureUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="inline-flex items-center gap-1 rounded-lg bg-marine/10 px-2.5 py-1 text-xs font-semibold text-marine hover:bg-marine/20 transition">
-                        <FileText className="h-3.5 w-3.5" /> View Brochure
-                      </a>
+                      <SecureImageThumbnail
+                        src={prog.brochureUrl}
+                        alt={`${prog.title} Brochure`}
+                        title={`Program Brochure: ${prog.title}`}
+                        iconOnly={true}
+                        label="View Brochure"
+                        metadata={{
+                          'Program': prog.title,
+                          'Course Fee': formatAED(prog.price),
+                          'Duration': prog.durationWeeks ? `${prog.durationWeeks} Weeks` : 'Flexible',
+                        }}
+                        allowDownload={true}
+                      />
                     ) : (
                       <span className="inline-block rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-500">No brochure</span>
                     )}
@@ -814,10 +825,18 @@ export default function ProgramCatalogue() {
         onChange={handleBrochureUpload}
         className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:border-tide focus:outline-none file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-tide/10 file:text-tide hover:file:bg-tide/20"
       />
-      {programForm.brochureMetadata?.fileName && (
-        <p className="text-[10px] text-slate-500 mt-1 truncate">
-          {programForm.brochureMetadata.fileName}
-        </p>
+      {programForm.brochureUrl && (
+        <div className="mt-2 flex items-center gap-2">
+          <SecureImageThumbnail
+            src={programForm.brochureUrl}
+            alt="Brochure Preview"
+            title={programForm.title || 'Brochure Preview'}
+            className="h-10 w-10 flex-shrink-0"
+          />
+          <span className="text-[10px] text-slate-500 truncate">
+            {programForm.brochureMetadata?.fileName || 'Brochure attached (Click to view)'}
+          </span>
+        </div>
       )}
     </div>
   </div>

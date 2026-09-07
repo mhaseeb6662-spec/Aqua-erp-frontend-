@@ -6,6 +6,7 @@ import {
 import toast from 'react-hot-toast';
 import customerService from '../../services/customerService';
 import api from '../../services/api';
+import SecureImageThumbnail from '../common/SecureImageThumbnail';
 
 const NATIONALITY_OPTIONS = [
   'United Arab Emirates', 'Saudi Arabia', 'Kuwait', 'Bahrain', 'Oman', 'Qatar',
@@ -304,16 +305,25 @@ export default function StudentFormModal({ open, onClose, onSaved }) {
             <div>
               {form.emiratesIdUrl ? (
                 <div className="relative rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center gap-3">
-                  <img
+                  <SecureImageThumbnail
                     src={form.emiratesIdUrl}
                     alt="Emirates ID Preview"
-                    className="h-16 w-24 object-cover rounded-lg border border-slate-200 bg-white"
+                    title="Emirates ID Document"
+                    fileName={form.emiratesIdMetadata.fileName || 'Emirates ID'}
+                    metadata={{
+                      fileName: form.emiratesIdMetadata.fileName,
+                      fileSize: form.emiratesIdMetadata.fileSize,
+                      fileType: form.emiratesIdMetadata.fileType,
+                      uploadedAt: form.emiratesIdMetadata.uploadedAt,
+                    }}
+                    className="h-16 w-24 flex-shrink-0"
+                    allowDownload={true}
                   />
                   <div className="flex-1 min-w-0 text-xs">
                     <p className="font-bold text-slate-800 truncate">{form.emiratesIdMetadata.fileName || 'Emirates ID'}</p>
                     <p className="text-[11px] text-slate-500">{(form.emiratesIdMetadata.fileSize / 1024).toFixed(1)} KB</p>
                     <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 mt-0.5">
-                      <CheckCircle2 className="h-3 w-3" /> Securely attached
+                      <CheckCircle2 className="h-3 w-3" /> Securely attached (Click image to expand)
                     </span>
                   </div>
                   <button

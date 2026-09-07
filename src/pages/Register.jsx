@@ -16,9 +16,17 @@ export default function Register() {
     setError('');
     setLoading(true);
     try {
-      const createdUser = await register(form);
-      toast.success('Account created successfully!');
-      if (form.roleSlug === 'parent' || createdUser.role?.slug === 'parent') {
+      const payload = {
+        ...form,
+        email: form.email.trim() ? form.email.trim() : undefined,
+      };
+      const createdUser = await register(payload);
+      if (createdUser?.studentCode) {
+        toast.success(`Account created! Your Student ID is ${createdUser.studentCode}`, { duration: 6000 });
+      } else {
+        toast.success('Account created successfully!');
+      }
+      if (form.roleSlug === 'parent' || createdUser?.role?.slug === 'parent') {
         navigate('/parent/dashboard', { replace: true });
       } else {
         navigate('/student/dashboard', { replace: true });
@@ -88,15 +96,27 @@ export default function Register() {
             />
           </div>
           <div>
-            <label className="label-field">Email address</label>
+            <div className="flex items-center justify-between">
+              <label className="label-field">
+                {form.roleSlug === 'student' ? 'Email address (Optional)' : 'Email address *'}
+              </label>
+              {form.roleSlug === 'student' && (
+                <span className="text-[11px] font-semibold text-slate-500">Optional</span>
+              )}
+            </div>
             <input
               type="email"
-              required
+              required={form.roleSlug === 'parent'}
               className="input-field"
-              placeholder="you@example.com"
+              placeholder={form.roleSlug === 'student' ? 'you@example.com (or leave empty)' : 'you@example.com'}
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
+            <p className="mt-1 text-xs text-slate-500">
+              {form.roleSlug === 'student'
+                ? 'Optional. Multiple students or parents can share the same email address.'
+                : 'Required for parent portal notifications and account recovery.'}
+            </p>
           </div>
           <div>
             <label className="label-field">Phone (optional)</label>

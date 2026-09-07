@@ -76,6 +76,7 @@ import StudentDashboard from './pages/portal/StudentDashboard';
 import StudentProfile from './pages/portal/StudentProfile';
 
 import { useAuth } from './context/AuthContext';
+import { ImagePreviewProvider } from './context/ImagePreviewContext';
 import Loader from './components/common/Loader';
 
 function RootRedirect() {
@@ -95,7 +96,7 @@ function RootRedirect() {
 
 export default function App() {
   return (
-    <>
+    <ImagePreviewProvider>
       <Toaster position="top-right" />
       <Routes>
         <Route path="/" element={<RootRedirect />} />
@@ -184,6 +185,6 @@ export default function App() {
 
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </>
+    </ImagePreviewProvider>
   );
 }

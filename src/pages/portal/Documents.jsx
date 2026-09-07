@@ -6,6 +6,7 @@ import {
   FileText, Upload, CheckCircle2, XCircle, Clock, Plus, X, Download, ShieldCheck, Filter
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import SecureImageThumbnail from '../../components/common/SecureImageThumbnail';
 
 export default function DocumentsPage() {
   const { user, hasPermission } = useAuth();
@@ -118,8 +119,22 @@ export default function DocumentsPage() {
                   {documents.map((doc) => (
                     <tr key={doc._id} className="hover:bg-slate-50/50">
                       <td className="px-6 py-4 font-semibold text-marine">
-                        <div className="flex items-center gap-2.5">
-                          <FileText className="h-4 w-4 text-tide" />
+                        <div className="flex items-center gap-3">
+                          <SecureImageThumbnail
+                            src={doc.fileUrl}
+                            mimeType={doc.mimeType}
+                            fileName={doc.title}
+                            title={doc.title}
+                            metadata={{
+                              'Document Title': doc.title,
+                              'Document Type': doc.documentType,
+                              'Student': doc.student?.fullName || 'Self',
+                              'Uploaded Date': new Date(doc.createdAt).toLocaleDateString(),
+                              'Status': doc.status,
+                            }}
+                            className="h-8 w-8 flex-shrink-0"
+                            allowDownload={true}
+                          />
                           <span>{doc.title}</span>
                         </div>
                       </td>
@@ -144,15 +159,22 @@ export default function DocumentsPage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <a
-                            href={doc.fileUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"
-                            title="View Document"
-                          >
-                            <Download className="h-4 w-4" />
-                          </a>
+                          <SecureImageThumbnail
+                            src={doc.fileUrl}
+                            mimeType={doc.mimeType}
+                            fileName={doc.title}
+                            title={doc.title}
+                            iconOnly={true}
+                            label="View"
+                            metadata={{
+                              'Document Title': doc.title,
+                              'Document Type': doc.documentType,
+                              'Student': doc.student?.fullName || 'Self',
+                              'Uploaded Date': new Date(doc.createdAt).toLocaleDateString(),
+                              'Status': doc.status,
+                            }}
+                            allowDownload={true}
+                          />
 
                           {hasPermission('portal:documents:manage') && doc.status === 'Pending Review' && (
                             <>

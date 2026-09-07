@@ -16,6 +16,7 @@ import followUpService from '../../services/followUpService';
 import activityService from '../../services/activityService';
 import paymentService from '../../services/paymentService';
 import { useAuth } from '../../context/AuthContext';
+import SecureImageThumbnail from '../../components/common/SecureImageThumbnail';
 
 export default function CustomerDetail() {
   const { id } = useParams();
@@ -139,6 +140,29 @@ export default function CustomerDetail() {
                   {customer.socialMediaConsent !== false ? 'Granted (Yes)' : 'Withheld (No)'}
                 </span>
               </div>
+
+              {customer.emiratesIdUrl && (
+                <div className="pt-2 border-t border-slate-100">
+                  <p className="text-[10px] uppercase font-bold text-slate-400 mb-1.5">Emirates ID Attachment</p>
+                  <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                    <SecureImageThumbnail
+                      src={customer.emiratesIdUrl}
+                      alt="Emirates ID Document"
+                      title={`${customer.fullName} - Emirates ID`}
+                      fileName={customer.emiratesIdMetadata?.fileName || 'Emirates ID'}
+                      metadata={customer.emiratesIdMetadata}
+                      className="h-12 w-16 flex-shrink-0"
+                      allowDownload={true}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-slate-800 truncate">
+                        {customer.emiratesIdMetadata?.fileName || 'Emirates ID'}
+                      </p>
+                      <p className="text-[10px] text-slate-400">Click to preview image</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

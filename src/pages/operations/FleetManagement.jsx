@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
 import toast from 'react-hot-toast';
+import SecureImageThumbnail from '../../components/common/SecureImageThumbnail';
 
 export default function FleetManagement() {
   const [vessels, setVessels] = useState([]);
@@ -331,10 +332,18 @@ export default function FleetManagement() {
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
                     {vessel.photoUrl ? (
-                      <img 
+                      <SecureImageThumbnail 
                         src={vessel.photoUrl} 
                         alt={vessel.name} 
-                        className="w-10 h-10 object-cover rounded-xl border border-slate-200"
+                        title={`Boat: ${vessel.name}`}
+                        metadata={{
+                          'Boat Name': vessel.name,
+                          'Registration': vessel.registrationNumber,
+                          'Capacity': `${vessel.capacity} Pax`,
+                          'Status': vessel.operationalStatus,
+                        }}
+                        className="w-10 h-10 flex-shrink-0"
+                        allowDownload={true}
                       />
                     ) : (
                       <div className={`p-2.5 rounded-xl ${
@@ -534,10 +543,18 @@ export default function FleetManagement() {
                     onChange={handlePhotoChange}
                     className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:border-marine focus:outline-none file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-marine/10 file:text-marine hover:file:bg-marine/20"
                   />
-                  {formData.photoMetadata?.fileName && (
-                    <p className="text-[10px] text-slate-500 mt-1 truncate">
-                      {formData.photoMetadata.fileName}
-                    </p>
+                  {formData.photoUrl && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <SecureImageThumbnail
+                        src={formData.photoUrl}
+                        alt="Boat Photo Preview"
+                        title={formData.name || 'Boat Photo Preview'}
+                        className="h-10 w-10 flex-shrink-0"
+                      />
+                      <span className="text-[10px] text-slate-500 truncate">
+                        {formData.photoMetadata?.fileName || 'Photo attached (Click to view)'}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>

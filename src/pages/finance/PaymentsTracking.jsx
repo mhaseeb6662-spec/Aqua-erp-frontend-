@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { formatAED } from '../../utils/currency';
 import { CreditCard, Search, Filter, CheckCircle2, RefreshCw, FileText, ArrowDownLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import SecureImageThumbnail from '../../components/common/SecureImageThumbnail';
 
 export default function PaymentsTracking() {
   const { user } = useAuth();
@@ -90,6 +91,7 @@ export default function PaymentsTracking() {
                     <th className="px-6 py-4">Amount</th>
                     <th className="px-6 py-4">Date & Time</th>
                     <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-center">Receipt</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -110,6 +112,28 @@ export default function PaymentsTracking() {
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
                           <CheckCircle2 className="h-3 w-3" /> {pay.status}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {pay.evidenceUrl ? (
+                          <SecureImageThumbnail
+                            src={pay.evidenceUrl}
+                            alt="POS Receipt"
+                            title={`POS Slip — ${pay.transactionId}`}
+                            iconOnly={true}
+                            label="Receipt"
+                            metadata={{
+                              'Transaction ID': pay.transactionId,
+                              'Amount': formatAED(pay.amount),
+                              'Method': pay.paymentMethod,
+                              'Approval Ref': pay.approvalCode || '—',
+                              'Date': new Date(pay.paidAt).toLocaleString(),
+                            }}
+                            allowDownload={true}
+                            requiredPermission="finance:payments:view"
+                          />
+                        ) : (
+                          <span className="text-slate-300 text-xs">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}

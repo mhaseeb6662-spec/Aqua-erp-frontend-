@@ -3,6 +3,7 @@ import { X, CreditCard, Upload, Camera, Trash2, CheckCircle2, DollarSign, AlertC
 import toast from 'react-hot-toast';
 import financeService from '../../services/financeService';
 import { formatAED } from '../../utils/currency';
+import SecureImageThumbnail from '../../components/common/SecureImageThumbnail';
 
 export default function RecordPaymentModal({ invoice, onClose, onSuccess }) {
   const [amount, setAmount] = useState(invoice?.balanceDue || 0);
@@ -241,10 +242,19 @@ export default function RecordPaymentModal({ invoice, onClose, onSuccess }) {
                 
                 {evidencePreview ? (
                   <div className="relative rounded-xl border border-slate-200 bg-white p-2.5 flex items-center gap-3">
-                    <img
+                    <SecureImageThumbnail
                       src={evidencePreview}
                       alt="POS Receipt Preview"
-                      className="h-16 w-16 object-cover rounded-lg border border-slate-100"
+                      title="POS Machine Receipt Slip"
+                      fileName={evidenceData.fileName || 'Receipt Photo'}
+                      metadata={{
+                        'File Name': evidenceData.fileName,
+                        'File Size': `${(evidenceData.fileSize / 1024).toFixed(1)} KB`,
+                        'Payment Method': paymentMethod,
+                        'Approval Ref': approvalCode || 'N/A',
+                      }}
+                      className="h-16 w-16 flex-shrink-0"
+                      allowDownload={true}
                     />
                     <div className="flex-1 min-w-0 text-xs">
                       <p className="font-bold text-slate-800 truncate">{evidenceData.fileName || 'Receipt Photo'}</p>

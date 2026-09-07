@@ -3,6 +3,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import coachService from '../../services/coachService';
 import toast from 'react-hot-toast';
 import { ShieldCheck, Calendar, AlertTriangle, FileText, CheckCircle2, Award } from 'lucide-react';
+import SecureImageThumbnail from '../../components/common/SecureImageThumbnail';
 
 export default function CoachMyCertifications() {
   const [certs, setCerts] = useState([]);
@@ -85,6 +86,26 @@ export default function CoachMyCertifications() {
                       </span>
                     </div>
                   </div>
+
+                  {cert.documentUrl && (
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-slate-500">Certificate Document:</span>
+                      <SecureImageThumbnail
+                        src={cert.documentUrl}
+                        title={`License: ${cert.title}`}
+                        alt={cert.title}
+                        iconOnly={true}
+                        label="View Document"
+                        metadata={{
+                          'Certificate': cert.title,
+                          'Authority': cert.issuingAuthority,
+                          'Issue Date': new Date(cert.issueDate).toLocaleDateString(),
+                          'Expiry Date': new Date(cert.expiryDate).toLocaleDateString(),
+                        }}
+                        allowDownload={true}
+                      />
+                    </div>
+                  )}
 
                   {isExpiring && (
                     <div className="rounded-xl bg-amber-50 p-2.5 text-xs text-amber-900 border border-amber-200 flex items-center gap-2">

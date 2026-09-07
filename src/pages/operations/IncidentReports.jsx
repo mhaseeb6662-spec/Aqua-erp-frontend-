@@ -3,10 +3,11 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import api from '../../services/api';
 import { 
   ShieldAlert, AlertCircle, Plus, Search, Trash2, CheckCircle, 
-  Clock, AlertTriangle, RefreshCw, X, FileText
+  Clock, AlertTriangle, RefreshCw, X, FileText, Camera, Upload
 } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
 import toast from 'react-hot-toast';
+import SecureImageThumbnail from '../../components/common/SecureImageThumbnail';
 
 export default function IncidentReports() {
   const [incidents, setIncidents] = useState([]);
@@ -26,7 +27,8 @@ export default function IncidentReports() {
     description: '',
     immediateAction: '',
     status: 'Open',
-    followUpRequired: false
+    followUpRequired: false,
+    attachments: []
   });
 
   const incidentTypes = [
@@ -38,6 +40,22 @@ export default function IncidentReports() {
     'Customer Complaint',
     'Other'
   ];
+
+  const handleAttachmentUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      return toast.error('Attachment must be under 10MB');
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setFormData(prev => ({
+        ...prev,
+        attachments: [...(prev.attachments || []), ev.target.result]
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
 
   const fetchIncidents = async () => {
     setIsLoading(true);
@@ -63,7 +81,8 @@ export default function IncidentReports() {
       description: '',
       immediateAction: '',
       status: 'Open',
-      followUpRequired: false
+      followUpRequired: false,
+      attachments: []
     });
     setIsAddModalOpen(true);
   };
@@ -275,6 +294,30 @@ export default function IncidentReports() {
                       </p>
                     )}
 
+                    {inc.attachments && inc.attachments.length > 0 && (
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <span className="text-[11px] font-semibold text-slate-400">Evidence:</span>
+                        <div className="flex flex-wrap gap-2">
+                          {inc.attachments.map((att, idx) => (
+                            <SecureImageThumbnail
+                              key={idx}
+                              src={att}
+                              title={`Incident ${inc.incidentId} Evidence #${idx + 1}`}
+                              alt="Incident Evidence"
+                              metadata={{
+                                'Incident': inc.incidentId,
+                                'Type': inc.incidentType,
+                                'Severity': inc.severity,
+                                'Reported Date': new Date(inc.createdAt).toLocaleDateString(),
+                              }}
+                              className="h-9 w-9 flex-shrink-0"
+                              allowDownload={true}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-4 text-[11px] text-slate-400 mt-2">
                       <span>Reported by: <strong>{inc.reportedBy?.fullName || 'Staff'}</strong></span>
                       <span>Date: <strong>{new Date(inc.createdAt).toLocaleDateString()}</strong></span>
@@ -390,6 +433,33 @@ export default function IncidentReports() {
                   onChange={(e) => setFormData({ ...formData, immediateAction: e.target.value })}
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:border-marine focus:outline-none"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                  Attach Photo Evidence
+                </label>
+                <input
+                  type="file"
+                  accept="image/jpeg, image/png, image/webp"
+                  onChange={handleAttachmentUpload}
+                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:border-marine focus:outline-none file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"
+                />
+                {formData.attachments && formData.attachments.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2">
+                    {formData.attachments.map((att, i) => (
+                      <SecureImageThumbnail
+                        key={i}
+                        src={att}
+                        title={`Evidence ${i + 1}`}
+                        className="h-10 w-10 flex-shrink-0"
+                      />
+                    ))}
+                    <span className="text-[10px] text-slate-500">
+                      {formData.attachments.length} photo(s) attached
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 pt-3 border-t border-slate-100">
