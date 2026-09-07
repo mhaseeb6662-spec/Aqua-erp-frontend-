@@ -27,20 +27,53 @@ export default function UserFormModal({ open, onClose, onSaved, roles, editingUs
     setError('');
   }, [editingUser, open]);
 
+  const selectedRoleDoc = roles.find((r) => r._id === form.role);
+  const isStudentRole = selectedRoleDoc?.slug === 'student' || selectedRoleDoc?.name?.toLowerCase() === 'student';
+
   if (!open) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    const emailTrim = (form.email || '').trim();
+
+    if (isStudentRole) {
+      if (emailTrim) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(emailTrim)) {
+          setError('Please provide a valid email address, or leave it blank.');
+          return;
+        }
+      }
+    } else {
+      if (!emailTrim) {
+        setError('Email address is required for this role.');
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(emailTrim)) {
+        setError('Please provide a valid email address.');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       if (editingUser) {
-        const { password, email, ...updatePayload } = form;
+        const { password, ...updatePayload } = form;
+        updatePayload.email = emailTrim;
         await userService.updateUser(editingUser._id, updatePayload);
         toast.success('User updated successfully.');
       } else {
-        await userService.createUser(form);
-        toast.success('User created successfully.');
+        const createPayload = { ...form, email: emailTrim };
+        const res = await userService.createUser(createPayload);
+        const createdUser = res?.data?.data;
+        if (isStudentRole && createdUser?.studentCode) {
+          toast.success(`Student created! Student ID: ${createdUser.studentCode}`);
+        } else {
+          toast.success('User created successfully.');
+        }
       }
       onSaved();
     } catch (err) {
@@ -86,13 +119,22 @@ export default function UserFormModal({ open, onClose, onSaved, roles, editingUs
           </div>
 
           <div>
-            <label className="label-field">Email address (Optional)</label>
+            <label className="label-field">
+              {isStudentRole ? 'Email (Optional)' : 'Email address *'}
+            </label>
             <input
-              type="email"
+              type="text"
+              required={!isStudentRole}
               className="input-field"
+              placeholder={isStudentRole ? 'Optional contact email' : 'user@aquafishingacademy.com'}
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
+            {isStudentRole && (
+              <p className="mt-1 text-xs text-slate-500">
+                Optional for students. If omitted, student can log in using their generated Student ID.
+              </p>
+            )}
           </div>
 
           {!editingUser && (

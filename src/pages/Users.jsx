@@ -120,7 +120,18 @@ export default function Users() {
                   <tr key={u._id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60">
                     <td className="px-6 py-3.5">
                       <p className="font-bold text-marine">{u.fullName}</p>
-                      <p className="text-xs text-slate-500 font-medium">{u.email}</p>
+                      <p className="text-xs text-slate-500 font-medium">
+                        {u.email ? (
+                          <>
+                            {u.email}
+                            {u.studentCode && <span className="ml-1.5 text-slate-400">({u.studentCode})</span>}
+                          </>
+                        ) : (
+                          <span className="text-slate-400 italic">
+                            {u.studentCode ? `ID: ${u.studentCode} · No email` : 'No email'}
+                          </span>
+                        )}
+                      </p>
                     </td>
                     <td className="px-6 py-3.5 text-slate-700 font-medium">{u.role?.name || '—'}</td>
                     <td className="px-6 py-3.5 text-slate-700 font-medium">{u.branch}</td>

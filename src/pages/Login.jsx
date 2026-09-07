@@ -147,17 +147,17 @@ export default function Login() {
 
               <div>
                 <label className="label-field !text-xs font-bold text-slate-700" htmlFor="email">
-                  Email address / Username
+                  Email address / Student ID
                 </label>
                 <div className="relative mt-1">
                   <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
                     id="email"
-                    type="email"
+                    type="text"
                     required
-                    autoComplete="email"
+                    autoComplete="username"
                     className="input-field !pl-10 !py-2.5 text-sm font-medium"
-                    placeholder="name@aquafishingacademy.com"
+                    placeholder="name@aquafishingacademy.com or STU-XXXXXX"
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                   />
