@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { formatAED } from '../../utils/currency';
+import SecureImageThumbnail from '../../components/common/SecureImageThumbnail';
 
 export default function BookingsPage() {
   const { user } = useAuth();
@@ -102,9 +103,26 @@ export default function BookingsPage() {
                 className="flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-sm border border-slate-100 sm:flex-row sm:items-center justify-between transition hover:border-slate-200"
               >
                 <div className="flex items-start gap-4">
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-tide/10 text-tide font-bold">
-                    <BookOpen className="h-6 w-6" />
-                  </span>
+                  {(b.program?.brochureUrl || b.program?.imageUrl) ? (
+                    <SecureImageThumbnail
+                      src={b.program.brochureUrl || b.program.imageUrl}
+                      alt={`${b.program?.title || 'Program'} Brochure`}
+                      title={`Program: ${b.program?.title || 'Academy Program'}`}
+                      className="h-12 w-12 shrink-0 rounded-2xl"
+                      metadata={{
+                        'Program': b.program?.title || 'Program',
+                        'Booking ID': b.bookingId,
+                        'Level': b.program?.level || 'All Levels',
+                        'Session Date': new Date(b.sessionDate).toDateString(),
+                        'Slot Time': b.slotTime,
+                      }}
+                      allowDownload={true}
+                    />
+                  ) : (
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-tide/10 text-tide font-bold">
+                      <BookOpen className="h-6 w-6" />
+                    </span>
+                  )}
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{b.bookingId}</span>

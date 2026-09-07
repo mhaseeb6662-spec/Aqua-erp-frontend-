@@ -137,7 +137,7 @@ export default function ImagePreviewLightbox({
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-slate-950/90 backdrop-blur-md select-none transition-opacity duration-200"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-between bg-slate-950/90 backdrop-blur-md select-none transition-opacity duration-200"
       onClick={onClose}
     >
       {/* Top Action Bar */}

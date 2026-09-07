@@ -83,6 +83,7 @@ export default function ProgramCatalogue() {
     status: "active",
     branches: [],
     brochureUrl: "",
+    imageUrl: "",
     brochureMetadata: null
   });
 
@@ -304,6 +305,7 @@ export default function ProgramCatalogue() {
       status: "active",
       branches: [],
       brochureUrl: "",
+      imageUrl: "",
       brochureMetadata: null
     });
     setShowProgramModal(true);
@@ -324,7 +326,8 @@ export default function ProgramCatalogue() {
       calendarColor: prog.calendarColor || "Red",
       status: prog.status || "active",
       branches: (prog.branches || []).map(b => typeof b === 'object' ? b._id : b),
-      brochureUrl: prog.brochureUrl || "",
+      brochureUrl: prog.brochureUrl || prog.imageUrl || "",
+      imageUrl: prog.imageUrl || prog.brochureUrl || "",
       brochureMetadata: prog.brochureMetadata || null
     });
     setShowProgramModal(true);
@@ -348,14 +351,26 @@ export default function ProgramCatalogue() {
       setProgramForm((prev) => ({
         ...prev,
         brochureUrl: reader.result,
+        imageUrl: reader.result,
         brochureMetadata: {
           fileName: file.name,
           mimeType: file.type,
           size: file.size,
+          uploadedAt: new Date().toISOString(),
         },
       }));
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleRemoveBrochure = (e) => {
+    if (e) e.stopPropagation();
+    setProgramForm((prev) => ({
+      ...prev,
+      brochureUrl: "",
+      imageUrl: "",
+      brochureMetadata: null,
+    }));
   };
 
   const handleProgramSubmit = async (e) => {
@@ -526,20 +541,36 @@ export default function ProgramCatalogue() {
               >
                 <div>
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    {prog.brochureUrl ? (
-                      <SecureImageThumbnail
-                        src={prog.brochureUrl}
-                        alt={`${prog.title} Brochure`}
-                        title={`Program Brochure: ${prog.title}`}
-                        iconOnly={true}
-                        label="View Brochure"
-                        metadata={{
-                          'Program': prog.title,
-                          'Course Fee': formatAED(prog.price),
-                          'Duration': prog.durationWeeks ? `${prog.durationWeeks} Weeks` : 'Flexible',
-                        }}
-                        allowDownload={true}
-                      />
+                    {(prog.brochureUrl || prog.imageUrl) ? (
+                      <div className="flex items-center gap-2">
+                        <SecureImageThumbnail
+                          src={prog.brochureUrl || prog.imageUrl}
+                          alt={`${prog.title} Brochure`}
+                          title={`Program Brochure: ${prog.title}`}
+                          className="h-10 w-10 shrink-0 rounded-xl"
+                          metadata={{
+                            'Program': prog.title,
+                            'Course Fee': formatAED(prog.price),
+                            'Duration': prog.durationWeeks ? `${prog.durationWeeks} Weeks` : 'Flexible',
+                            'Age Group': prog.ageGroup,
+                          }}
+                          allowDownload={true}
+                        />
+                        <SecureImageThumbnail
+                          src={prog.brochureUrl || prog.imageUrl}
+                          alt={`${prog.title} Brochure`}
+                          title={`Program Brochure: ${prog.title}`}
+                          iconOnly={true}
+                          label="View Brochure"
+                          metadata={{
+                            'Program': prog.title,
+                            'Course Fee': formatAED(prog.price),
+                            'Duration': prog.durationWeeks ? `${prog.durationWeeks} Weeks` : 'Flexible',
+                            'Age Group': prog.ageGroup,
+                          }}
+                          allowDownload={true}
+                        />
+                      </div>
                     ) : (
                       <span className="inline-block rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-500">No brochure</span>
                     )}
@@ -1004,26 +1035,45 @@ export default function ProgramCatalogue() {
       </select>
     </div>
     <div>
-      <label className="block text-xs font-semibold text-slate-700">Program Brochure (Image)</label>
+      <label className="block text-xs font-semibold text-slate-700">Program Brochure / Image</label>
       <input
         type="file"
         accept="image/jpeg, image/png, image/webp"
         onChange={handleBrochureUpload}
         className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:border-tide focus:outline-none file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-tide/10 file:text-tide hover:file:bg-tide/20"
       />
-      {programForm.brochureUrl && (
-        <div className="mt-2 flex items-center gap-2">
-          <SecureImageThumbnail
-            src={programForm.brochureUrl}
-            alt="Brochure Preview"
-            title={programForm.title || 'Brochure Preview'}
-            className="h-10 w-10 flex-shrink-0"
-          />
-          <span className="text-[10px] text-slate-500 truncate">
-            {programForm.brochureMetadata?.fileName || 'Brochure attached (Click to view)'}
-          </span>
+      {(programForm.brochureUrl || programForm.imageUrl) ? (
+        <div className="mt-2 flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <SecureImageThumbnail
+              src={programForm.brochureUrl || programForm.imageUrl}
+              alt="Brochure Preview"
+              title={programForm.title ? `${programForm.title} Brochure` : 'Brochure Preview'}
+              className="h-10 w-10 shrink-0 rounded-lg"
+              metadata={{
+                'File Name': programForm.brochureMetadata?.fileName || 'Brochure Image',
+                'Program': programForm.title || 'Draft Program',
+              }}
+              allowDownload={true}
+            />
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-slate-700 truncate">
+                {programForm.brochureMetadata?.fileName || 'Brochure Image Attached'}
+              </p>
+              <p className="text-[10px] text-slate-400">Click thumbnail to preview in Lightbox</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleRemoveBrochure}
+            className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition"
+            title="Remove Brochure"
+            aria-label="Remove Program Brochure"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
-      )}
+      ) : null}
     </div>
   </div>
 
