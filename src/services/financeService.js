@@ -19,6 +19,7 @@ const financeService = {
 
   // Refunds
   getRefunds: (params) => api.get('/finance/refunds', { params }),
+  getEligibleRefundTransactions: (params) => api.get('/finance/refunds/eligible-transactions', { params }),
   processRefund: (data) => api.post('/finance/refunds', data),
 
   // Receipts
