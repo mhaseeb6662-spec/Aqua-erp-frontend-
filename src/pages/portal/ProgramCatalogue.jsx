@@ -12,6 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import AcademyLogo from '../../components/common/AcademyLogo';
 import SecureImageThumbnail from '../../components/common/SecureImageThumbnail';
+import ReceiptDocument from '../../components/finance/ReceiptDocument';
 
 export default function ProgramCatalogue() {
   const { user, hasPermission } = useAuth();
@@ -852,41 +853,18 @@ export default function ProgramCatalogue() {
                   </div>
 
                   {generatedInvoice && (
-                    <div className="printable-document rounded-2xl bg-white p-6 border border-slate-200 text-xs space-y-3 text-left">
-                      <div className="text-center border-b border-slate-100 pb-3 flex flex-col items-center">
-                        <AcademyLogo variant="receipt" className="mb-2" />
-                        <p className="text-[11px] text-slate-500 font-medium">Official Payment Receipt &amp; Booking Confirmation</p>
-                        {completedReceipt && (
-                          <p className="font-mono text-xs font-bold text-tide mt-1">{completedReceipt.receiptNumber}</p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2 text-xs">
-                        <div className="flex justify-between border-b border-slate-100 pb-1.5">
-                          <span className="text-slate-500">Invoice Number:</span>
-                          <span className="font-mono font-bold text-marine">{generatedInvoice.invoiceNumber}</span>
-                        </div>
-                        <div className="flex justify-between border-b border-slate-100 pb-1.5">
-                          <span className="text-slate-500">Customer Name:</span>
-                          <span className="font-semibold text-marine">{user?.fullName}</span>
-                        </div>
-                        <div className="flex justify-between border-b border-slate-100 pb-1.5">
-                          <span className="text-slate-500">Program:</span>
-                          <span className="font-semibold text-marine">{selectedProgram?.title}</span>
-                        </div>
-                        <div className="flex justify-between border-b border-slate-100 pb-1.5">
-                          <span className="text-slate-500">Session Date &amp; Slot:</span>
-                          <span className="font-semibold text-marine">{bookingDate} ({bookingSlot})</span>
-                        </div>
-                        <div className="flex justify-between border-b border-slate-100 pb-1.5">
-                          <span className="text-slate-500">Payment Status:</span>
-                          <span className="font-bold text-emerald-600">PAID</span>
-                        </div>
-                        <div className="flex justify-between items-center bg-emerald-50 p-2.5 rounded-xl border border-emerald-100 mt-2">
-                          <span className="text-emerald-800 font-bold">Total Paid:</span>
-                          <span className="font-display text-base font-bold text-emerald-700">{formatAED(generatedInvoice.totalAmount)}</span>
-                        </div>
-                      </div>
+                    <div className="max-h-[60vh] overflow-y-auto my-3 rounded-2xl border border-slate-100 p-2 text-left bg-slate-50/50">
+                      <ReceiptDocument
+                        receipt={{
+                          receiptNumber: completedReceipt?.receiptNumber || 'RCT-AUTO',
+                          invoice: generatedInvoice,
+                          customer: user,
+                          amountPaid: generatedInvoice.totalAmount,
+                          paymentMethod: 'Online Payment Gateway',
+                          paidAt: new Date(),
+                        }}
+                        id="booking-confirmation-receipt"
+                      />
                     </div>
                   )}
 

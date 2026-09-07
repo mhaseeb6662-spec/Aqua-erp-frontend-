@@ -24,6 +24,7 @@ const financeService = {
 
   // Receipts
   getReceipts: (params) => api.get('/finance/receipts', { params }),
+  getReceipt: (id) => api.get(`/finance/receipts/${id}`),
 };
 
 export default financeService;
