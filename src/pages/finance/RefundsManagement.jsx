@@ -26,6 +26,7 @@ export default function RefundsManagement() {
   const [isLoadingEligible, setIsLoadingEligible] = useState(false);
   const [eligibleError, setEligibleError] = useState('');
   const [modalSearch, setModalSearch] = useState('');
+  const [selectedTxnObj, setSelectedTxnObj] = useState(null);
 
   // Issue Refund Form State
   const [selectedPayment, setSelectedPayment] = useState('');
@@ -58,8 +59,8 @@ export default function RefundsManagement() {
       setEligibleTransactions(res.data.data || []);
     } catch (err) {
       console.error('Error loading eligible transactions:', err);
-      setEligibleError('Unable to load refundable transactions. Please check your connection or contact an administrator.');
-      toast.error('Unable to load refundable transactions');
+      setEligibleError('Unable to search refundable transactions. Please check your connection or contact an administrator.');
+      toast.error('Unable to search refundable transactions');
     } finally {
       setIsLoadingEligible(false);
     }
@@ -69,8 +70,28 @@ export default function RefundsManagement() {
     fetchRefunds();
   }, []);
 
+  // 300ms Debounced search for live query changes
+  useEffect(() => {
+    if (!showModal) return;
+
+    const clean = modalSearch.trim();
+    if (!clean) return;
+
+    // Minimum search length: 2 chars unless invoice/txn code pattern
+    if (clean.length < 2 && !clean.toUpperCase().startsWith('IN') && !clean.toUpperCase().startsWith('TX')) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      fetchEligibleTransactions(clean);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [modalSearch, showModal, fetchEligibleTransactions]);
+
   const handleOpenModal = () => {
     setSelectedPayment('');
+    setSelectedTxnObj(null);
     setRefundAmount('');
     setReason('Customer requested schedule cancellation');
     setModalSearch('');
@@ -81,7 +102,14 @@ export default function RefundsManagement() {
   const handleSearchChange = (e) => {
     const val = e.target.value;
     setModalSearch(val);
-    fetchEligibleTransactions(val);
+    if (!val.trim()) {
+      fetchEligibleTransactions('');
+    }
+  };
+
+  const handleClearSearch = () => {
+    setModalSearch('');
+    fetchEligibleTransactions('');
   };
 
   const handleRefundSubmit = async (e) => {
@@ -90,35 +118,36 @@ export default function RefundsManagement() {
       return toast.error('Please select an eligible payment transaction and enter a reason');
     }
 
-    const selectedTxn = eligibleTransactions.find(
+    const activeTxn = selectedTxnObj || eligibleTransactions.find(
       (t) => t.id === selectedPayment || t.paymentId === selectedPayment
     );
 
-    if (!selectedTxn) {
+    if (!activeTxn) {
       return toast.error('Selected transaction is not eligible for refund');
     }
 
-    const enteredAmount = refundAmount ? Number(refundAmount) : selectedTxn.refundableAmount;
+    const enteredAmount = refundAmount ? Number(refundAmount) : activeTxn.refundableAmount;
 
     if (isNaN(enteredAmount) || enteredAmount <= 0) {
       return toast.error('Refund amount must be greater than zero');
     }
 
-    if (enteredAmount > selectedTxn.refundableAmount) {
+    if (enteredAmount > activeTxn.refundableAmount) {
       return toast.error(
-        `Refund amount cannot exceed remaining refundable balance of ${formatAED(selectedTxn.refundableAmount)}`
+        `Refund amount cannot exceed remaining refundable balance of ${formatAED(activeTxn.refundableAmount)}`
       );
     }
 
     setIsSubmitting(true);
     try {
       await financeService.processRefund({
-        paymentId: selectedTxn.paymentId,
+        paymentId: activeTxn.paymentId,
         amount: enteredAmount,
         reason: reason.trim(),
       });
       toast.success('Refund processed successfully!');
       setShowModal(false);
+      setSelectedTxnObj(null);
       fetchRefunds();
       fetchEligibleTransactions('');
     } catch (err) {
@@ -128,7 +157,7 @@ export default function RefundsManagement() {
     }
   };
 
-  const selectedTxn = eligibleTransactions.find(
+  const selectedTxn = selectedTxnObj || eligibleTransactions.find(
     (t) => t.id === selectedPayment || t.paymentId === selectedPayment
   );
 
@@ -235,7 +264,7 @@ export default function RefundsManagement() {
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <label className="block text-xs font-semibold text-slate-700">
-                      Eligible Transaction / Invoice *
+                      Search Invoice / Transaction / Customer
                     </label>
                     <button
                       type="button"
@@ -248,36 +277,76 @@ export default function RefundsManagement() {
                     </button>
                   </div>
 
-                  {/* Search Input */}
+                  {/* Search Input with Debounce & Clear Action */}
                   <div className="relative mb-2">
                     <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
                       value={modalSearch}
                       onChange={handleSearchChange}
-                      placeholder="Search by Invoice #, TXN ID, or Customer name..."
-                      className="w-full rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-xs focus:border-tide focus:outline-none bg-slate-50/50"
+                      placeholder="Search by invoice number, transaction number, or customer name..."
+                      className="w-full rounded-xl border border-slate-200 py-2 pl-9 pr-8 text-xs focus:border-tide focus:outline-none bg-slate-50/50"
                     />
+                    {modalSearch && (
+                      <button
+                        type="button"
+                        onClick={handleClearSearch}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200 transition"
+                        title="Clear search"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Live Search Status & Result Count */}
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 mb-2 px-0.5">
+                    <span>
+                      {isLoadingEligible ? (
+                        <span className="flex items-center gap-1 text-tide font-medium">
+                          <RefreshCw className="h-3 w-3 animate-spin" /> Searching eligible transactions...
+                        </span>
+                      ) : modalSearch.trim() ? (
+                        <span className="font-medium text-slate-600">
+                          {eligibleTransactions.length === 0
+                            ? 'No matching transactions'
+                            : `Found ${eligibleTransactions.length} matching transaction(s)`}
+                        </span>
+                      ) : (
+                        <span className="font-medium text-slate-500">
+                          Showing all {eligibleTransactions.length} eligible refundable transactions
+                        </span>
+                      )}
+                    </span>
+                    {modalSearch.trim() && (
+                      <button
+                        type="button"
+                        onClick={handleClearSearch}
+                        className="text-tide font-semibold hover:underline"
+                      >
+                        Clear
+                      </button>
+                    )}
                   </div>
 
                   {/* Loading State */}
                   {isLoadingEligible ? (
                     <div className="flex items-center justify-center py-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 text-slate-500 text-xs">
                       <RefreshCw className="h-4 w-4 animate-spin text-tide mr-2" />
-                      Loading live eligible transactions...
+                      Searching eligible transactions...
                     </div>
                   ) : eligibleError ? (
                     /* Error State */
                     <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 flex items-start gap-2">
                       <AlertCircle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
-                      <div>
+                      <div className="flex-1">
                         <p className="font-semibold">{eligibleError}</p>
                         <button
                           type="button"
                           onClick={() => fetchEligibleTransactions(modalSearch)}
                           className="mt-1 font-bold underline text-rose-800 hover:text-rose-900"
                         >
-                          Retry Loading
+                          Retry
                         </button>
                       </div>
                     </div>
@@ -285,37 +354,56 @@ export default function RefundsManagement() {
                     /* Empty State */
                     <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-xs text-slate-500">
                       <Receipt className="mx-auto h-8 w-8 text-slate-300 mb-1" />
-                      <p className="font-semibold text-slate-700">No refundable transactions available.</p>
+                      <p className="font-semibold text-slate-700">No matching refundable invoice or transaction found.</p>
                       <p className="text-[11px] text-slate-400 mt-0.5">
-                        Only paid or partially paid transactions with refundable balances appear here.
+                        {modalSearch
+                          ? 'Try adjusting your search terms, invoice number, or customer name.'
+                          : 'Only paid or partially paid transactions with refundable balances appear here.'}
                       </p>
+                      {modalSearch && (
+                        <button
+                          type="button"
+                          onClick={handleClearSearch}
+                          className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-tide hover:underline bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm"
+                        >
+                          <X className="h-3.5 w-3.5" /> Clear search & restore list
+                        </button>
+                      )}
                     </div>
                   ) : (
                     /* Selection Dropdown */
-                    <select
-                      value={selectedPayment}
-                      onChange={(e) => {
-                        setSelectedPayment(e.target.value);
-                        const match = eligibleTransactions.find(
-                          (t) => t.id === e.target.value || t.paymentId === e.target.value
-                        );
-                        if (match) {
-                          setRefundAmount(String(match.refundableAmount));
-                        } else {
-                          setRefundAmount('');
-                        }
-                      }}
-                      required
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs focus:border-tide focus:outline-none bg-white font-medium"
-                    >
-                      <option value="">-- Choose Transaction to Refund ({eligibleTransactions.length} eligible) --</option>
-                      {eligibleTransactions.map((t) => (
-                        <option key={t.id || t.paymentId} value={t.id || t.paymentId}>
-                          {t.invoiceNumber !== 'N/A' ? `[${t.invoiceNumber}] ` : ''}
-                          {t.transactionId} - {t.customerName} - {t.paymentMethod} (Paid: AED {t.paidAmount} | Refundable: AED {t.refundableAmount})
-                        </option>
-                      ))}
-                    </select>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                        Select Refundable Transaction *
+                      </label>
+                      <select
+                        value={selectedPayment}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSelectedPayment(val);
+                          const match = eligibleTransactions.find(
+                            (t) => (t.id || t.paymentId) === val
+                          );
+                          if (match) {
+                            setSelectedTxnObj(match);
+                            setRefundAmount(String(match.refundableAmount));
+                          } else {
+                            setSelectedTxnObj(null);
+                            setRefundAmount('');
+                          }
+                        }}
+                        required
+                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs focus:border-tide focus:outline-none bg-white font-medium"
+                      >
+                        <option value="">-- Choose Transaction to Refund ({eligibleTransactions.length} eligible) --</option>
+                        {eligibleTransactions.map((t) => (
+                          <option key={t.id || t.paymentId} value={t.id || t.paymentId}>
+                            {t.invoiceNumber !== 'N/A' ? `[${t.invoiceNumber}] ` : ''}
+                            {t.transactionId} - {t.customerName}{t.studentName && t.studentName !== t.customerName ? ` (${t.studentName})` : ''} - {t.paymentMethod} (Paid: {formatAED(t.paidAmount)} | Refundable: {formatAED(t.refundableAmount)})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   )}
                 </div>
 
