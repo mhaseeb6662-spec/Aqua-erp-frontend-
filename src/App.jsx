@@ -11,6 +11,7 @@ import Roles from './pages/Roles';
 import Unauthorized from './pages/Unauthorized';
 import NotFound from './pages/NotFound';
 import Integrations from './pages/Integrations';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 import ProtectedRoute from './components/common/ProtectedRoute';
 
@@ -103,6 +104,8 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/privacy" element={<Navigate to="/privacy-policy" replace />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
 
         {/* 1. Super Admin & Core Management Portal */}

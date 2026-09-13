@@ -235,6 +235,13 @@ export default function Login() {
               </Link>
             </p>
           </div>
+
+          <div className="text-center text-xs text-slate-500 pt-1">
+            <span>By signing in, you agree to our </span>
+            <Link to="/privacy-policy" className="font-semibold text-tide hover:underline">
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </div>
     </div>

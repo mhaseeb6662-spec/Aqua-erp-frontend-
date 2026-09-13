@@ -151,6 +151,13 @@ export default function Register() {
             Sign in
           </Link>
         </p>
+
+        <p className="mt-4 text-center text-xs text-slate-500">
+          By registering, you agree to our{' '}
+          <Link to="/privacy-policy" className="font-semibold text-tide hover:underline">
+            Privacy Policy
+          </Link>
+        </p>
       </div>
     </div>
   );
