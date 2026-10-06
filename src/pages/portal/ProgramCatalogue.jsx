@@ -376,8 +376,8 @@ export default function ProgramCatalogue() {
 
   const handleProgramSubmit = async (e) => {
     e.preventDefault();
-    if (!programForm.title || !programForm.price) {
-      return toast.error('Please fill required fields');
+    if (!programForm.title || !programForm.price || !programForm.description) {
+      return toast.error('Please fill all required fields, including description.');
     }
     setIsSubmitting(true);
     try {
