@@ -80,7 +80,7 @@ export default function ProgramCatalogue() {
     durationHours: 1,
     durationMinutes: 0,
     price: 299,
-    calendarColor: "Red",
+    calendarColor: "orange",
     status: "active",
     branches: [],
     brochureUrl: "",
@@ -302,7 +302,7 @@ export default function ProgramCatalogue() {
       durationHours: 1,
       durationMinutes: 0,
       price: 299,
-      calendarColor: "Red",
+      calendarColor: "orange",
       status: "active",
       branches: [],
       brochureUrl: "",
@@ -320,11 +320,11 @@ export default function ProgramCatalogue() {
       category: prog.category || defaultCat,
       description: prog.description || "",
       ageGroup: prog.ageGroup || "All Ages",
-      durationWeeks: prog.durationWeeks || 4,
+      durationWeeks: prog.durationWeeks !== undefined ? prog.durationWeeks : 4,
       durationHours: prog.durationHours || 1,
       durationMinutes: prog.durationMinutes || 0,
       price: prog.price || 0,
-      calendarColor: prog.calendarColor || "Red",
+      calendarColor: (prog.calendarColor || "orange").toLowerCase(),
       status: prog.status || "active",
       branches: (prog.branches || []).map(b => typeof b === 'object' ? b._id : b),
       brochureUrl: prog.brochureUrl || prog.imageUrl || "",
@@ -339,11 +339,11 @@ export default function ProgramCatalogue() {
     if (!file) return;
 
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      alert('Only JPG, PNG and WEBP images are supported for the brochure.');
+      toast.error('Only JPG, PNG and WEBP images are supported for the brochure.');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert('Brochure image size must be less than 5MB.');
+      toast.error('Brochure image size must be less than 5MB.');
       return;
     }
 
@@ -383,6 +383,10 @@ export default function ProgramCatalogue() {
     try {
       const payload = {
         ...programForm,
+        price: Number(programForm.price),
+        durationWeeks: Number(programForm.durationWeeks || 0),
+        durationHours: Number(programForm.durationHours || 1),
+        calendarColor: (programForm.calendarColor || 'orange').toLowerCase(),
         branches: programForm.branches.length ? programForm.branches : branches.map((b) => b._id),
       };
       if (editingProgramId) {
@@ -964,13 +968,13 @@ export default function ProgramCatalogue() {
         onChange={(e) => setProgramForm({ ...programForm, calendarColor: e.target.value })}
         className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-tide focus:outline-none bg-white"
       >
-        <option value="Red">Red</option>
-        <option value="Blue">Blue</option>
-        <option value="Green">Green</option>
-        <option value="Orange">Orange</option>
-        <option value="Yellow">Yellow</option>
-        <option value="Pink">Pink</option>
-        <option value="Purple">Purple</option>
+        <option value="red">Red</option>
+        <option value="blue">Blue</option>
+        <option value="green">Green</option>
+        <option value="orange">Orange</option>
+        <option value="yellow">Yellow</option>
+        <option value="pink">Pink</option>
+        <option value="purple">Purple</option>
       </select>
     </div>
   </div>
