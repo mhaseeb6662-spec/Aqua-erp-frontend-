@@ -25,7 +25,7 @@ export default function FleetManagement() {
   const [formData, setFormData] = useState({
     name: '',
     registrationNumber: '',
-    boatSize: 'Small',
+    boatSize: '',
     photoUrl: '',
     photoMetadata: { fileName: '', fileSize: 0, mimeType: '' },
     capacity: 8,
@@ -73,7 +73,7 @@ export default function FleetManagement() {
     setFormData({
       name: '',
       registrationNumber: '',
-      boatSize: 'Small',
+      boatSize: '',
     photoUrl: '',
     photoMetadata: { fileName: '', fileSize: 0, mimeType: '' },
       capacity: 8,
@@ -90,7 +90,7 @@ export default function FleetManagement() {
     setFormData({
       name: vessel.name || '',
       registrationNumber: vessel.registrationNumber || '',
-      boatSize: vessel.boatSize || vessel.vesselType || 'Small',
+      boatSize: vessel.boatSize || vessel.vesselType || '',
       photoUrl: vessel.photoUrl || '',
       photoMetadata: vessel.photoMetadata || { fileName: '', fileSize: 0, mimeType: '' },
       capacity: vessel.capacity || 8,
@@ -163,7 +163,7 @@ export default function FleetManagement() {
       fetchVessels();
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'Operation failed');
+      toast.error(err.response?.data?.message || err.message || 'Operation failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -381,7 +381,7 @@ export default function FleetManagement() {
                 <div className="space-y-2 text-xs text-slate-600 pt-2 border-t border-slate-100">
                   <div className="flex justify-between">
                     <span>Boat Size:</span>
-                    <strong className="text-marine">{vessel.vesselType || 'Small'}</strong>
+                    <strong className="text-marine">{vessel.vesselType || '-'}</strong>
                   </div>
                   <div className="flex justify-between">
                     <span>Passenger Capacity:</span>
@@ -471,17 +471,15 @@ export default function FleetManagement() {
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                    Boat Size
+                    Boat Size (Feet)
                   </label>
-                  <select
+                  <input
+                    type="text"
                     value={formData.boatSize}
-                    onChange={(e) => setFormData({ ...formData, vesselType: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, boatSize: e.target.value })}
+                    placeholder="e.g. 36 ft"
                     className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:border-marine focus:outline-none bg-white"
-                  >
-                    {boatSizes.map(t => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
               </div>
 
